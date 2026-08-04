@@ -24,6 +24,17 @@ const MOVES: [number, number][] = [
   [2, 1],
   [2, 2],
 ]
+/**
+ * 영어 단위가 사용자 지정(`/`)이라 합칠 수 없을 때 쓰는 이동.
+ * 영어는 반드시 1단위씩 소비하고, 한국어만 0~3조각씩 붙인다.
+ * [0,1]은 대응하는 한국어 조각이 없는 영어 단위 (문장 중간에 끊긴 경우).
+ */
+const MOVES_FIXED_EN: [number, number][] = [
+  [1, 1],
+  [2, 1],
+  [3, 1],
+  [0, 1],
+]
 
 /**
  * 한국어 조각과 영어 조각을 길이 비율로 정렬한다 (Gale-Church 방식의 간소판).
@@ -34,7 +45,11 @@ const MOVES: [number, number][] = [
  *
  * 오디오 구간은 영어 기준으로 잡히므로, 묶인 영어 조각들은 하나의 문장으로 합쳐진다.
  */
-function alignByLength(koChunks: string[], enChunks: string[]): { ko: string; en: string }[] {
+function alignByLength(
+  koChunks: string[],
+  enChunks: string[],
+  moves: [number, number][] = MOVES,
+): { ko: string; en: string }[] {
   const K = koChunks.length
   const E = enChunks.length
   const totalKo = koChunks.reduce((n, s) => n + s.length, 0) || 1
@@ -61,7 +76,7 @@ function alignByLength(koChunks: string[], enChunks: string[]): { ko: string; en
   for (let k = 0; k <= K; k++) {
     for (let e = 0; e <= E; e++) {
       if (best[k][e] === INF) continue
-      for (const [dk, de] of MOVES) {
+      for (const [dk, de] of moves) {
         if (k + dk > K || e + de > E) continue
         const next = best[k][e] + cost(k, dk, e, de)
         if (next < best[k + dk][e + de]) {
@@ -97,6 +112,41 @@ export interface SplitResult {
 }
 
 export function splitScript(ko: string, en: string): SplitResult {
+  // 사용자가 영어에 `/` 로 연습 단위를 직접 표시했으면 그것이 최우선 기준이다
+  const slashUnits = en
+    .split('/')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (slashUnits.length > 1) {
+    const koSlash = ko
+      .split('/')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (koSlash.length === slashUnits.length) {
+      // 한국어에도 같은 개수의 `/` 가 있으면 그대로 1:1
+      return {
+        sentences: slashUnits.map((text, i) => ({ order: i, en: text, ko: koSlash[i] })),
+        koAligned: true,
+      }
+    }
+    // 한국어엔 `/` 가 없다: `..` 조각을 길이 비율로 각 영어 단위에 배분한다.
+    // 영어 단위는 절대 합치지 않는다 (사용자가 정한 단위이므로).
+    const koChunks = splitChunks(ko)
+    if (koChunks.length > 0) {
+      const groups = alignByLength(koChunks, slashUnits, MOVES_FIXED_EN)
+      if (groups.length === slashUnits.length) {
+        return {
+          sentences: groups.map((g, i) => ({ order: i, en: g.en, ko: g.ko })),
+          koAligned: true,
+        }
+      }
+    }
+    return {
+      sentences: slashUnits.map((text, i) => ({ order: i, en: text, ko: '' })),
+      koAligned: false,
+    }
+  }
+
   const enChunks = splitChunks(en)
   const koChunks = splitChunks(ko)
 

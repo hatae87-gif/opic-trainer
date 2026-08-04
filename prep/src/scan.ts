@@ -5,10 +5,14 @@ import { unzipSync } from 'fflate'
 import type { SourceFile } from './types.js'
 
 const DAY_DIR = /^DAY(\d+)\((\d{6})\)$/i
+/** DAY 폴더보다 항상 우선하는 정리본 폴더. 사용자가 직접 다듬은 자료가 들어간다 */
+const CURATED_DAY = 999
 const AUDIO_EXT = /\.(m4a|mp3|wav|mp4|aac)$/i
 const SCRIPT_DOC = /모든\s*스크립트.*\.docx$/i
 /** 교재는 스크립트가 아니라 수업용 책이므로 제외한다 */
 const TEXTBOOK_DOC = /교재/i
+/** 워드 잠금 파일(~$...), 임시 파일 등 */
+const JUNK_FILE = /^~\$|\.tmp$|^\.|^Thumbs\.db$/i
 
 function sha256(data: Buffer): string {
   return createHash('sha256').update(data).digest('hex')
@@ -61,6 +65,7 @@ function walk(dir: string, day: number, date: string, out: SourceFile[]): void {
       walk(full, day, date, out)
       continue
     }
+    if (JUNK_FILE.test(entry.name)) continue
     if (statSync(full).size === 0) continue
     const data = readFileSync(full)
     const file: SourceFile = {
@@ -88,9 +93,13 @@ export interface ScanResult {
   stats: { scanned: number; unique: number; days: number[] }
 }
 
-/** 파일명 끝의 `(숫자)` 를 변형 번호로 떼어낸다. `... where (2).m4a` → base:"... where", no:2 */
+/**
+ * 파일명에서 변형 번호를 떼어낸다. 번호 뒤에 설명 라벨이 붙기도 한다.
+ * `... where (2).m4a` → base:"... where", no:2
+ * `... where (2) - 멀어.m4a` → base:"... where", no:2
+ */
 function parseAudioName(name: string): { base: string; no: number } | null {
-  const m = name.match(/^(.*?)\s*\(\s*(\d+)\s*\)\s*\.[a-z0-9]+$/i)
+  const m = name.match(/^(.*?)\s*\(\s*(\d+)\s*\)\s*(?:[-–—]\s*.+?)?\s*\.[a-z0-9]+$/i)
   if (!m) return null
   return { base: m[1].trim(), no: Number(m[2]) }
 }
@@ -102,14 +111,20 @@ export function scanMaterials(root: string): ScanResult {
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
     const m = entry.name.match(DAY_DIR)
-    if (!m) continue
-    const day = Number(m[1])
-    days.push(day)
-    walk(join(root, entry.name), day, m[2], all)
+    if (m) {
+      const day = Number(m[1])
+      days.push(day)
+      walk(join(root, entry.name), day, m[2], all)
+    } else {
+      // DAY 형식이 아닌 폴더(종합 등)는 사용자가 정리한 최신본으로 취급해
+      // 어떤 DAY보다도 우선한다
+      days.push(CURATED_DAY)
+      walk(join(root, entry.name), CURATED_DAY, '', all)
+    }
   }
 
   if (days.length === 0) {
-    throw new Error(`수업 폴더(DAY1(260726) 형식)를 찾지 못했습니다: ${root}`)
+    throw new Error(`수업 폴더를 찾지 못했습니다: ${root}`)
   }
 
   // 같은 파일이 폴더와 zip 양쪽에 중복 존재한다. 내용 해시로 하나만 남기되
