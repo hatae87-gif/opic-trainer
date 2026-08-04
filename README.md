@@ -2,6 +2,14 @@
 
 OPIc 학원 자료(워드 스크립트 + 선생님 녹음)를 폰에서 복습하는 개인용 PWA.
 
+**앱 주소: https://hatae87-gif.github.io/opic-trainer/**
+
+앱 코드를 고친 뒤 다시 배포하려면:
+```
+npm run build --workspace=app
+npx gh-pages -d app/dist --nojekyll
+```
+
 ## 매주 새 수업 자료가 오면
 
 1. 학원 자료를 `C:\Users\hatae\Documents\Claude\Opic 1등급 도전\DAY{N}(날짜)\` 폴더에 넣는다 (zip 그대로 둬도 됨)
