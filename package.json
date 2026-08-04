@@ -1,0 +1,12 @@
+{
+  "name": "opic-trainer",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "prep",
+    "app"
+  ],
+  "scripts": {
+    "prep": "npm run start --workspace=prep --"
+  }
+}

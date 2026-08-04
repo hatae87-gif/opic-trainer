@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+prep/output/
+prep/.cache/
+app/dev-dist/
+*.opicpack
+*.tsbuildinfo
