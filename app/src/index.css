@@ -152,6 +152,25 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .btn-icon.rec { border-color: var(--red); color: var(--red); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: 0.5; } }
 
+.sentence.editing { border-color: var(--amber); display: flex; flex-direction: column; gap: 6px; }
+.edit-label { font-size: 0.75rem; color: var(--dim); }
+.edit-area {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--surface2);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+.edit-area:focus { outline: none; border-color: var(--accent); }
+.edit-actions { display: flex; gap: 8px; margin-top: 4px; }
+.edit-actions .restore { border-color: var(--amber); color: var(--amber); }
+.edit-hint { font-size: 0.75rem; margin: 2px 0 0; }
+
 .ko-block { background: var(--surface); border-radius: 12px; padding: 10px 14px; margin: 8px 0; }
 .ko-block summary { color: var(--dim); font-size: 0.85rem; cursor: pointer; }
 .ko-block p { line-height: 1.6; font-size: 0.9rem; }

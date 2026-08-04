@@ -59,4 +59,15 @@ export interface RecordingEntry {
   createdAt: number
 }
 
+/**
+ * 사용자가 앱에서 직접 고친 문장. 원본과 별도로 저장되어
+ * 새 번들을 가져와도 유지된다. 필드가 없으면 원본 그대로 표시.
+ */
+export interface SentenceEdit {
+  sentenceId: string
+  ko?: string
+  en?: string
+  updatedAt: number
+}
+
 export type Grade = 'again' | 'hard' | 'good'

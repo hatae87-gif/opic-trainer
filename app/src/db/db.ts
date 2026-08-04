@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type { RecordingEntry, SrsEntry, StoredScript } from '../types'
+import type { RecordingEntry, SentenceEdit, SrsEntry, StoredScript } from '../types'
 
 interface OpicDB extends DBSchema {
   /** 스크립트 본문 + 문장 + 구간. 임포트 때마다 통째로 교체된다 */
@@ -14,21 +14,28 @@ interface OpicDB extends DBSchema {
     value: RecordingEntry
     indexes: { bySentence: string }
   }
+  /** 앱에서 직접 고친 문장. 임포트해도 지워지지 않는다 */
+  edits: { key: string; value: SentenceEdit }
   meta: { key: string; value: { key: string; value: string } }
 }
 
 let dbPromise: Promise<IDBPDatabase<OpicDB>> | null = null
 
 export function getDB(): Promise<IDBPDatabase<OpicDB>> {
-  dbPromise ??= openDB<OpicDB>('opic-trainer', 1, {
-    upgrade(db) {
-      db.createObjectStore('scripts', { keyPath: 'id' })
-      db.createObjectStore('audio', { keyPath: 'scriptId' })
-      const srs = db.createObjectStore('srs', { keyPath: 'sentenceId' })
-      srs.createIndex('byDue', 'dueAt')
-      const rec = db.createObjectStore('recordings', { keyPath: 'id' })
-      rec.createIndex('bySentence', 'sentenceId')
-      db.createObjectStore('meta', { keyPath: 'key' })
+  dbPromise ??= openDB<OpicDB>('opic-trainer', 2, {
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        db.createObjectStore('scripts', { keyPath: 'id' })
+        db.createObjectStore('audio', { keyPath: 'scriptId' })
+        const srs = db.createObjectStore('srs', { keyPath: 'sentenceId' })
+        srs.createIndex('byDue', 'dueAt')
+        const rec = db.createObjectStore('recordings', { keyPath: 'id' })
+        rec.createIndex('bySentence', 'sentenceId')
+        db.createObjectStore('meta', { keyPath: 'key' })
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore('edits', { keyPath: 'sentenceId' })
+      }
     },
   })
   return dbPromise

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getDB } from '../db/db'
+import { applyEdits, clearEdit, editedIds, saveEdit } from '../db/edits'
 import { usePlayer, type Speed } from '../player/usePlayer'
 import { latestRecording, useRecorder } from '../recorder/useRecorder'
 import { substitute, tokenize, TOPIC_PRESETS, type Topic } from '../topic'
@@ -21,15 +22,22 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
   const [hide, setHide] = useState<HideMode>('none')
   /** 가리기 모드에서 개별적으로 열어본 문장들 */
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
+  /** 지금 편집 중인 문장 id와 입력값 */
+  const [editing, setEditing] = useState<{ id: string; ko: string; en: string } | null>(null)
+  const [edited, setEdited] = useState<Set<string>>(new Set())
+
+  const reload = async () => {
+    const db = await getDB()
+    const s = await db.get('scripts', scriptId)
+    setScript(s ? await applyEdits(s) : null)
+    setEdited(await editedIds())
+    const audio = await db.get('audio', scriptId)
+    setAudioBlob(audio?.blob ?? null)
+  }
 
   useEffect(() => {
-    void (async () => {
-      const db = await getDB()
-      const s = await db.get('scripts', scriptId)
-      setScript(s ?? null)
-      const audio = await db.get('audio', scriptId)
-      setAudioBlob(audio?.blob ?? null)
-    })()
+    void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scriptId])
 
   const segments = useMemo(
@@ -72,7 +80,58 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
     )
   }
 
+  const startEdit = (s: StoredSentence) => {
+    player.stop()
+    setEditing({ id: s.sentenceId, ko: s.ko, en: s.en })
+  }
+
+  const submitEdit = async () => {
+    if (!editing) return
+    await saveEdit(editing.id, editing.ko, editing.en)
+    setEditing(null)
+    await reload()
+  }
+
+  const restoreOriginal = async () => {
+    if (!editing) return
+    await clearEdit(editing.id)
+    setEditing(null)
+    await reload()
+  }
+
+  const renderEditForm = (s: StoredSentence) => (
+    <li key={s.sentenceId} className="sentence editing" onClick={(e) => e.stopPropagation()}>
+      <label className="edit-label">한국어</label>
+      <textarea
+        className="edit-area"
+        rows={3}
+        value={editing!.ko}
+        onChange={(e) => setEditing((p) => p && { ...p, ko: e.target.value })}
+      />
+      <label className="edit-label">영어</label>
+      <textarea
+        className="edit-area"
+        rows={3}
+        value={editing!.en}
+        onChange={(e) => setEditing((p) => p && { ...p, en: e.target.value })}
+      />
+      <div className="edit-actions">
+        <button className="btn" onClick={() => void submitEdit()}>저장</button>
+        <button className="btn-outline" onClick={() => setEditing(null)}>취소</button>
+        {edited.has(s.sentenceId) && (
+          <button className="btn-outline restore" onClick={() => void restoreOriginal()}>
+            원본 복원
+          </button>
+        )}
+      </div>
+      <p className="dim edit-hint">
+        수정본은 이 폰에만 저장되며, 새 자료를 가져와도 유지됩니다.
+      </p>
+    </li>
+  )
+
   const renderSentence = (s: StoredSentence) => {
+    if (editing?.id === s.sentenceId) return renderEditForm(s)
     const isPlaying = player.state.playing === s.order
     const hidden =
       hide !== 'none' && !revealed.has(s.sentenceId)
@@ -138,6 +197,13 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
           </button>
           <button className="btn-icon" onClick={() => void playMine(s.sentenceId)} aria-label="내 녹음 듣기">
             👤
+          </button>
+          <button
+            className={`btn-icon ${edited.has(s.sentenceId) ? 'on' : ''}`}
+            onClick={() => startEdit(s)}
+            aria-label="문장 수정"
+          >
+            ✏️
           </button>
         </div>
       </li>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getDB } from '../db/db'
+import { applyEdits } from '../db/edits'
 import { dueSentenceIds, grade } from '../srs/srs'
 import type { Grade, StoredScript, StoredSentence } from '../types'
 
@@ -26,7 +27,7 @@ export function ReviewScreen({ onDone }: Props) {
   useEffect(() => {
     void (async () => {
       const db = await getDB()
-      const scripts = await db.getAll('scripts')
+      const scripts = await Promise.all((await db.getAll('scripts')).map(applyEdits))
       const due = new Set(await dueSentenceIds())
 
       const pool: Card[] = []
