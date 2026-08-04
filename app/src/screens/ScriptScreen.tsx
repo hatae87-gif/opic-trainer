@@ -78,9 +78,22 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
       hide !== 'none' && !revealed.has(s.sentenceId)
         ? hide
         : 'none'
+    // 카드 아무 곳이나 탭 → 그 문장 재생 (이동 중 큰 터치 영역).
+    // 가리기 모드에서는 먼저 열어 보여주면서 같이 재생한다.
+    const canPlay = player.hasAudio && s.start !== undefined
+    const onCardTap = () => {
+      if (hide !== 'none' && !revealed.has(s.sentenceId)) toggleReveal(s.sentenceId)
+      if (!canPlay) return
+      if (isPlaying && !player.state.loop) player.stop()
+      else player.playSegment(s.order)
+    }
     return (
-      <li key={s.sentenceId} className={`sentence ${isPlaying ? 'active' : ''}`}>
-        <div className="sentence-text" onClick={() => hide !== 'none' && toggleReveal(s.sentenceId)}>
+      <li
+        key={s.sentenceId}
+        className={`sentence ${isPlaying ? 'active' : ''} ${canPlay ? 'tappable' : ''}`}
+        onClick={onCardTap}
+      >
+        <div className="sentence-text">
           {s.ko && (
             <p className={`ko ${hidden === 'ko' ? 'blurred' : ''}`}>{renderText(s.ko)}</p>
           )}
@@ -89,7 +102,7 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
             {s.needsReview && <span className="review-flag" title="구간 확인 필요"> ⚠</span>}
           </p>
         </div>
-        <div className="sentence-actions">
+        <div className="sentence-actions" onClick={(e) => e.stopPropagation()}>
           {player.hasAudio && s.start !== undefined && (
             <>
               <button
