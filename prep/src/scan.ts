@@ -11,8 +11,8 @@ const AUDIO_EXT = /\.(m4a|mp3|wav|mp4|aac)$/i
 const SCRIPT_DOC = /모든\s*스크립트.*\.docx$/i
 /** 교재는 스크립트가 아니라 수업용 책이므로 제외한다 */
 const TEXTBOOK_DOC = /교재/i
-/** 워드 잠금 파일(~$...), 임시 파일 등 */
-const JUNK_FILE = /^~\$|\.tmp$|^\.|^Thumbs\.db$/i
+/** 워드 잠금 파일(~$...), 임시 파일, writeback 백업 등 */
+const JUNK_FILE = /^~\$|\.tmp$|\.bak$|^\.|^Thumbs\.db$/i
 
 function sha256(data: Buffer): string {
   return createHash('sha256').update(data).digest('hex')
