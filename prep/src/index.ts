@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { alignSentences } from './align.js'
+import { carrySlashes, loadPreviousAnnotations, normalizeForCompare } from './annotate.js'
 import { writeBundle } from './bundle.js'
 import { categoryKey, parseScriptDoc } from './parseDocx.js'
 import { scanMaterials } from './scan.js'
@@ -94,11 +95,36 @@ async function main() {
   /** 번들 작성용: 스크립트 id → 오디오 원본 */
   const audioByScript = new Map<string, SourceFile>()
 
+  // 새 워드에 `/` 가 빠져 있어도 (학원 파일로 덮어쓴 경우),
+  // 문장 내용이 같으면 이전 번들에서 사용자의 단위 표시를 이어받는다
+  const annotations = loadPreviousAnnotations()
+
   for (const category of doc.categories) {
     for (const s of category.scripts) {
-      const { sentences, koAligned } = splitScript(s.ko, s.en)
-      const audio = audioMap.get(`${category.key}#${s.no}`) ?? null
       const id = `${category.key}#${s.no}`.replace(/\s+/g, '-')
+      let en = s.en
+      let carried = false
+      if (!en.includes('/')) {
+        const prev = annotations.get(id)
+        if (prev && normalizeForCompare(prev) === normalizeForCompare(en)) {
+          en = prev
+          carried = true
+        } else if (prev) {
+          // 오타 수정 정도의 변경이면 / 위치를 새 문장으로 옮겨 심는다
+          const migrated = carrySlashes(prev, en)
+          if (migrated) {
+            en = migrated
+            carried = true
+          } else {
+            console.warn(
+              `  ! ${category.title} ${s.no}) 내용이 많이 바뀌어 기존 / 단위를 이어받지 못했습니다. 워드에 / 를 다시 넣어주세요.`,
+            )
+          }
+        }
+      }
+      const { sentences, koAligned, usedSlash } = splitScript(s.ko, en)
+      if (carried) console.log(`  ↻ ${category.title} ${s.no}) ${s.labelEn}: 이전 / 단위 ${sentences.length}개 이어받음`)
+      const audio = audioMap.get(`${category.key}#${s.no}`) ?? null
       if (audio) audioByScript.set(id, audio)
       scripts.push({
         ...s,
@@ -109,6 +135,7 @@ async function main() {
         audio: audio ? audio.name : null,
         sentences,
         koAligned,
+        unitSource: usedSlash ? 'slash' : 'auto',
       })
     }
   }

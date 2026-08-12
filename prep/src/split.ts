@@ -109,6 +109,8 @@ function alignByLength(
 export interface SplitResult {
   sentences: SentencePair[]
   koAligned: boolean
+  /** 사용자의 `/` 표시로 나눴는지 여부 */
+  usedSlash: boolean
 }
 
 export function splitScript(ko: string, en: string): SplitResult {
@@ -127,6 +129,7 @@ export function splitScript(ko: string, en: string): SplitResult {
       return {
         sentences: slashUnits.map((text, i) => ({ order: i, en: text, ko: koSlash[i] })),
         koAligned: true,
+        usedSlash: true,
       }
     }
     // 한국어엔 `/` 가 없다: `..` 조각을 길이 비율로 각 영어 단위에 배분한다.
@@ -138,19 +141,21 @@ export function splitScript(ko: string, en: string): SplitResult {
         return {
           sentences: groups.map((g, i) => ({ order: i, en: g.en, ko: g.ko })),
           koAligned: true,
+          usedSlash: true,
         }
       }
     }
     return {
       sentences: slashUnits.map((text, i) => ({ order: i, en: text, ko: '' })),
       koAligned: false,
+      usedSlash: true,
     }
   }
 
   const enChunks = splitChunks(en)
   const koChunks = splitChunks(ko)
 
-  if (enChunks.length === 0) return { sentences: [], koAligned: false }
+  if (enChunks.length === 0) return { sentences: [], koAligned: false, usedSlash: false }
 
   if (koChunks.length > 0) {
     const groups = alignByLength(koChunks, enChunks)
@@ -158,6 +163,7 @@ export function splitScript(ko: string, en: string): SplitResult {
       return {
         sentences: groups.map((g, i) => ({ order: i, en: g.en, ko: g.ko })),
         koAligned: true,
+        usedSlash: false,
       }
     }
   }
@@ -166,5 +172,6 @@ export function splitScript(ko: string, en: string): SplitResult {
   return {
     sentences: enChunks.map((text, i) => ({ order: i, en: text, ko: '' })),
     koAligned: false,
+    usedSlash: false,
   }
 }

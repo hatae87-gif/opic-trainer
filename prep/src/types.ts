@@ -81,6 +81,8 @@ export interface BuiltScript extends ParsedScript {
   sentences: SentencePair[]
   /** 한국어 문장 수와 영어 문장 수가 맞지 않아 문장별 한국어를 못 붙인 경우 false */
   koAligned: boolean
+  /** 단위 출처. slash = 사용자가 `/` 로 정한 단위 (이전 번들에서 이어받은 것 포함) */
+  unitSource?: 'slash' | 'auto'
 }
 
 export interface Manifest {
