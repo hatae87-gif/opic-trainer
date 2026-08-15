@@ -104,20 +104,24 @@ export function alignSentences(sentences: SentencePair[], tr: Transcription): vo
   const hypTokens = hypWords.map((w) => w.token)
 
   const refTokens: string[] = []
-  /** refTokens[i] 가 몇 번째 문장 소속인지 */
+  /**
+   * refTokens[i] 가 sentences 배열의 몇 번째 문장 소속인지.
+   * s.order 는 스크립트마다 0부터 다시 시작하므로 (카테고리 공유 오디오에서
+   * 여러 스크립트를 한꺼번에 정렬할 때 겹친다) 배열 인덱스를 쓴다.
+   */
   const owner: number[] = []
-  for (const s of sentences) {
+  for (const [si, s] of sentences.entries()) {
     for (const token of normalizeWords(s.en)) {
       refTokens.push(token)
-      owner.push(s.order)
+      owner.push(si)
     }
   }
 
   const map = alignWords(refTokens, hypTokens)
 
-  for (const s of sentences) {
-    const indices = map.filter((h, r) => h >= 0 && owner[r] === s.order)
-    const total = owner.filter((o) => o === s.order).length
+  for (const [si, s] of sentences.entries()) {
+    const indices = map.filter((h, r) => h >= 0 && owner[r] === si)
+    const total = owner.filter((o) => o === si).length
     if (indices.length === 0 || total === 0) {
       s.needsReview = true
       continue

@@ -1,6 +1,40 @@
 import type { SentencePair } from './types.js'
 
 /**
+ * 볼드 처리된 `/` 를 표시하는 내부 구분자.
+ * 원문에 "배우/가수", "Recently/Last time" 같은 진짜 슬래시가 등장하면서부터는
+ * 사용자가 끊는 곳을 볼드 `/` 로 표시한다. 파서가 볼드 슬래시를 이 문자로 바꿔둔다.
+ */
+export const UNIT_SEP = '∥'
+
+/**
+ * 연습 단위 나누기. 우선순위:
+ * 1) 볼드 `/` (UNIT_SEP) 가 있으면 그것만 구분자로 쓴다
+ * 2) 없으면 일반 `/` 중 한쪽에라도 공백이 붙은 것만 구분자로 본다
+ *    ("wife,/ I mean" 은 구분, "배우/가수" 는 원문 글자)
+ * 구분자가 없으면 null.
+ */
+export function splitUnits(text: string): string[] | null {
+  if (text.includes(UNIT_SEP)) {
+    const units = text
+      .split(UNIT_SEP)
+      .map((s) => s.trim())
+      .filter(Boolean)
+    return units.length > 1 ? units : null
+  }
+  const units = text
+    .split(/(?<=\s)\/|\/(?=\s)/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return units.length > 1 ? units : null
+}
+
+/** 이 본문에 사용자 단위 표시가 있는가 (이어받기를 건너뛸지 판단용) */
+export function hasUnitMarks(text: string): boolean {
+  return splitUnits(text) !== null
+}
+
+/**
  * 문장 경계로 자른다.
  *
  * 이 자료에서 진짜 호흡 단위는 마침표가 아니라 `..` 와 `…` 다. 선생님도 여기서 쉬고,
@@ -26,13 +60,17 @@ const MOVES: [number, number][] = [
 ]
 /**
  * 영어 단위가 사용자 지정(`/`)이라 합칠 수 없을 때 쓰는 이동.
- * 영어는 반드시 1단위씩 소비하고, 한국어만 0~3조각씩 붙인다.
+ * 영어는 반드시 1단위씩 소비하고, 한국어만 0~6조각씩 붙인다.
+ * (한국어는 `..` 가 잦아 조각이 훨씬 잘게 나오므로 상한을 넉넉히 둔다)
  * [0,1]은 대응하는 한국어 조각이 없는 영어 단위 (문장 중간에 끊긴 경우).
  */
 const MOVES_FIXED_EN: [number, number][] = [
   [1, 1],
   [2, 1],
   [3, 1],
+  [4, 1],
+  [5, 1],
+  [6, 1],
   [0, 1],
 ]
 
@@ -114,17 +152,11 @@ export interface SplitResult {
 }
 
 export function splitScript(ko: string, en: string): SplitResult {
-  // 사용자가 영어에 `/` 로 연습 단위를 직접 표시했으면 그것이 최우선 기준이다
-  const slashUnits = en
-    .split('/')
-    .map((s) => s.trim())
-    .filter(Boolean)
-  if (slashUnits.length > 1) {
-    const koSlash = ko
-      .split('/')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    if (koSlash.length === slashUnits.length) {
+  // 사용자가 영어에 연습 단위를 직접 표시했으면 그것이 최우선 기준이다
+  const slashUnits = splitUnits(en)
+  if (slashUnits) {
+    const koSlash = splitUnits(ko)
+    if (koSlash && koSlash.length === slashUnits.length) {
       // 한국어에도 같은 개수의 `/` 가 있으면 그대로 1:1
       return {
         sentences: slashUnits.map((text, i) => ({ order: i, en: text, ko: koSlash[i] })),

@@ -20,8 +20,9 @@ export function writeBundle(
     if (!s.audio) continue
     const file = audioByScript.get(s.id)
     if (!file) continue
-    // zip 엔트리 이름은 ASCII로 강제해 폰 쪽 압축 해제에서 한글 인코딩 문제를 피한다
-    const safeName = `audio/${s.id}.m4a`
+    // 내용 해시로 이름을 정한다: ASCII 강제(한글 인코딩 문제 회피) +
+    // 카테고리 전체 녹음을 여러 스크립트가 공유해도 zip에는 한 번만 들어간다
+    const safeName = `audio/${file.sha256.slice(0, 16)}.m4a`
     s.audio = safeName
     entries[safeName] = file.data
   }

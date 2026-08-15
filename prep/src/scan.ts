@@ -97,11 +97,13 @@ export interface ScanResult {
  * 파일명에서 변형 번호를 떼어낸다. 번호 뒤에 설명 라벨이 붙기도 한다.
  * `... where (2).m4a` → base:"... where", no:2
  * `... where (2) - 멀어.m4a` → base:"... where", no:2
+ * `... 인물묘사.m4a` (번호 없음) → no:0 — 카테고리 전체를 읽은 녹음
  */
 function parseAudioName(name: string): { base: string; no: number } | null {
-  const m = name.match(/^(.*?)\s*\(\s*(\d+)\s*\)\s*(?:[-–—]\s*.+?)?\s*\.[a-z0-9]+$/i)
-  if (!m) return null
-  return { base: m[1].trim(), no: Number(m[2]) }
+  const numbered = name.match(/^(.*?)\s*\(\s*(\d+)\s*\)\s*(?:[-–—]\s*.+?)?\s*\.[a-z0-9]+$/i)
+  if (numbered) return { base: numbered[1].trim(), no: Number(numbered[2]) }
+  const plain = name.match(/^(.*?)\s*\.[a-z0-9]+$/i)
+  return plain ? { base: plain[1].trim(), no: 0 } : null
 }
 
 export function scanMaterials(root: string): ScanResult {
@@ -152,11 +154,7 @@ export function scanMaterials(root: string): ScanResult {
     .filter((f) => AUDIO_EXT.test(f.name))
     .map((f) => {
       const parsed = parseAudioName(f.name)
-      if (!parsed) {
-        console.warn(`  ! 오디오 파일명에서 변형 번호를 못 읽었습니다: ${f.name}`)
-        return null
-      }
-      return { file: f, ...parsed }
+      return parsed ? { file: f, ...parsed } : null
     })
     .filter((x): x is { file: SourceFile; base: string; no: number } => x !== null)
 

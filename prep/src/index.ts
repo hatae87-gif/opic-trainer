@@ -6,7 +6,7 @@ import { carrySlashes, loadPreviousAnnotations, normalizeForCompare } from './an
 import { writeBundle } from './bundle.js'
 import { categoryKey, parseScriptDoc } from './parseDocx.js'
 import { scanMaterials } from './scan.js'
-import { splitScript } from './split.js'
+import { hasUnitMarks, splitScript } from './split.js'
 import { transcribe } from './transcribe.js'
 import type { BuiltScript, SourceFile } from './types.js'
 
@@ -39,9 +39,11 @@ function parseArgs(argv: string[]): Options {
 }
 
 /**
- * 오디오 파일명은 `하태용님 육하원칙 where (2).m4a` 형태다.
- * 앞의 학생 이름·대단원은 무시하고, 끝부분이 카테고리 이름과 맞는지로 연결한다.
- * 여러 카테고리가 걸리면 가장 긴 것을 택해 `who` 가 `when how often` 을 가로채지 않게 한다.
+ * 오디오 파일명은 `하태용님 육하원칙 where (2).m4a` 형태다. 번호가 없으면
+ * (`하태용님 인물묘사.m4a`) 카테고리 전체를 읽은 녹음이며 no=0 으로 들어온다.
+ * 학생 이름·대단원·"스크립트" 같은 곁말은 무시하고 카테고리 이름이
+ * 단어 경계로 포함되는지로 연결한다. 여러 카테고리가 걸리면 가장 긴 것을 택해
+ * `who` 가 `when how often` 을 가로채지 않게 한다.
  */
 function matchAudio(
   audioFiles: { file: SourceFile; base: string; no: number }[],
@@ -49,11 +51,12 @@ function matchAudio(
 ): Map<string, SourceFile> {
   const matched = new Map<string, SourceFile>()
   const used = new Set<string>()
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
   for (const audio of audioFiles) {
     const base = categoryKey(audio.base)
     const hit = keys
-      .filter((k) => base === k || base.endsWith(` ${k}`))
+      .filter((k) => new RegExp(`(^|\\s)${escape(k)}(\\s|$)`).test(base))
       .sort((a, b) => b.length - a.length)[0]
     if (!hit) continue
     const id = `${hit}#${audio.no}`
@@ -104,7 +107,9 @@ async function main() {
       const id = `${category.key}#${s.no}`.replace(/\s+/g, '-')
       let en = s.en
       let carried = false
-      if (!en.includes('/')) {
+      // 단위 표시(볼드 / 또는 공백 붙은 /)가 없을 때만 이전 번들에서 이어받는다.
+      // "배우/가수" 같은 원문 슬래시는 단위 표시가 아니다.
+      if (!hasUnitMarks(en)) {
         const prev = annotations.get(id)
         if (prev && normalizeForCompare(prev) === normalizeForCompare(en)) {
           en = prev
@@ -124,10 +129,13 @@ async function main() {
       }
       const { sentences, koAligned, usedSlash } = splitScript(s.ko, en)
       if (carried) console.log(`  ↻ ${category.title} ${s.no}) ${s.labelEn}: 이전 / 단위 ${sentences.length}개 이어받음`)
-      const audio = audioMap.get(`${category.key}#${s.no}`) ?? null
+      // 변형 전용 녹음이 없으면 카테고리 전체 녹음(#0)을 함께 쓴다
+      const audio = audioMap.get(`${category.key}#${s.no}`) ?? audioMap.get(`${category.key}#0`) ?? null
       if (audio) audioByScript.set(id, audio)
       scripts.push({
         ...s,
+        // 무번호 변형(배우/가수 등)은 영어 라벨이 없다. 앱 제목이 비지 않게 채운다
+        labelEn: s.labelEn || s.labelKo,
         id,
         categoryKey: category.key,
         categoryTitle: category.title,
@@ -144,17 +152,50 @@ async function main() {
   console.log(`카테고리 ${doc.categories.length}개 · 스크립트 ${scripts.length}개\n`)
 
   // ---- 음성 인식 & 정렬 ----
+  // 같은 녹음을 공유하는 스크립트들(카테고리 전체 녹음)은 한 번만 인식하고,
+  // 문서 순서대로 이어붙인 문장 전체를 하나의 인식 결과에 정렬한다
   if (!opts.dry) {
+    const groups = new Map<string, { file: SourceFile; scripts: BuiltScript[] }>()
     for (const s of scripts) {
-      const audio = audioByScript.get(s.id)
-      if (!audio) continue
-      process.stdout.write(`  🎙 ${s.categoryTitle} ${s.no}) ${s.labelEn} … `)
+      const file = audioByScript.get(s.id)
+      if (!file) continue
+      const g = groups.get(file.sha256) ?? { file, scripts: [] }
+      g.scripts.push(s)
+      groups.set(file.sha256, g)
+    }
+    for (const g of groups.values()) {
+      const label =
+        g.scripts.length === 1
+          ? `${g.scripts[0].categoryTitle} ${g.scripts[0].no}) ${g.scripts[0].labelEn || g.scripts[0].labelKo}`
+          : `${g.scripts[0].categoryTitle} 전체 (스크립트 ${g.scripts.length}개 공유)`
+      process.stdout.write(`  🎙 ${label} … `)
       try {
-        const tr = await transcribe(audio)
-        alignSentences(s.sentences, tr)
-        s.audioDuration = tr.duration
-        const review = s.sentences.filter((x) => x.needsReview).length
-        console.log(`${fmt(tr.duration)} · 문장 ${s.sentences.length}개` + (review ? ` · 확인필요 ${review}` : ''))
+        const tr = await transcribe(g.file)
+        const combined = g.scripts.flatMap((x) => x.sentences)
+        alignSentences(combined, tr)
+        for (const x of g.scripts) x.audioDuration = tr.duration
+        // 스크립트의 모든 문장이 매칭 실패면 녹음에 그 스크립트가 아예 없는 것이다
+        // (예: 아직 녹음 안 된 응용 tip). 가짜 구간을 지우고 오디오 연결도 끊는다
+        const unrecorded: string[] = []
+        for (const x of g.scripts) {
+          if (x.sentences.length > 0 && x.sentences.every((sn) => sn.needsReview)) {
+            for (const sn of x.sentences) {
+              delete sn.start
+              delete sn.end
+              delete sn.needsReview
+            }
+            x.audio = null
+            x.audioDuration = undefined
+            audioByScript.delete(x.id)
+            unrecorded.push(x.labelEn || x.labelKo)
+          }
+        }
+        const spanned = combined.filter((x) => x.start !== undefined)
+        const review = spanned.filter((x) => x.needsReview).length
+        console.log(`${fmt(tr.duration)} · 문장 ${combined.length}개` + (review ? ` · 확인필요 ${review}` : ''))
+        for (const name of unrecorded) {
+          console.log(`      ↳ ${name}: 녹음에 없는 스크립트로 판단, 오디오 연결 안 함`)
+        }
       } catch (err) {
         console.log(`실패 (${(err as Error).message})`)
       }
