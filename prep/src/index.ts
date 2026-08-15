@@ -137,6 +137,7 @@ async function main() {
         // 무번호 변형(배우/가수 등)은 영어 라벨이 없다. 앱 제목이 비지 않게 채운다
         labelEn: s.labelEn || s.labelKo,
         id,
+        order: scripts.length,
         categoryKey: category.key,
         categoryTitle: category.title,
         part: doc.part,

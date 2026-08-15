@@ -72,6 +72,8 @@ export interface SentencePair {
 /** 번들 manifest에 들어가는 최종 스크립트 */
 export interface BuiltScript extends ParsedScript {
   id: string
+  /** 문서 전체에서의 등장 순서. 앱 홈 화면 정렬 기준 */
+  order: number
   categoryKey: string
   categoryTitle: string
   part: string

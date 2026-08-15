@@ -152,6 +152,53 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .btn-icon.rec { border-color: var(--red); color: var(--red); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: 0.5; } }
 
+/* 홈: 정리표 스타일 카테고리 카드 + 변형 칩 */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.cat-card {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 14px;
+  padding: 12px;
+}
+.cat-card h2 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 9px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.chip-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--surface2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: left;
+}
+.chip:hover { border-color: var(--accent); }
+.chip:active { background: var(--surface2); }
+.chip.no-audio { color: var(--dim); }
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
 .sentence.editing { border-color: var(--amber); display: flex; flex-direction: column; gap: 6px; }
 .edit-label { font-size: 0.75rem; color: var(--dim); }
 .edit-area {

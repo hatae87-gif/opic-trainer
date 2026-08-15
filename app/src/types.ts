@@ -10,6 +10,8 @@ export interface SentencePair {
 
 export interface ManifestScript {
   id: string
+  /** 문서 전체에서의 등장 순서. 옛 번들에는 없다 */
+  order?: number
   no: number
   labelEn: string
   labelKo: string

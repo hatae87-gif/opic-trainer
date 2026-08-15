@@ -46,8 +46,9 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
     }
   }
 
-  // 카테고리별 그룹
-  const categories = [...new Map(scripts.map((s) => [s.categoryKey, s.categoryTitle])).entries()]
+  // 문서 등장 순서대로 정렬한 뒤 카테고리로 묶는다 (옛 번들은 order가 없어 저장 순서 유지)
+  const ordered = [...scripts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  const categories = [...new Map(ordered.map((s) => [s.categoryKey, s.categoryTitle])).entries()]
 
   return (
     <div className="screen">
@@ -83,30 +84,28 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
         </div>
       )}
 
-      {categories.map(([key, title]) => (
-        <section key={key}>
-          <h2>{title}</h2>
-          <ul className="script-list">
-            {scripts
-              .filter((s) => s.categoryKey === key)
-              .sort((a, b) => a.no - b.no)
-              .map((s) => (
-                <li key={s.id}>
-                  <button className="script-card" onClick={() => onOpenScript(s.id)}>
-                    <span className="script-label">
-                      {s.no}) {s.labelEn}
-                      <span className="dim"> – {s.labelKo}</span>
-                    </span>
-                    <span className="script-meta">
-                      {s.audio ? '🔊 ' : ''}
-                      문장 {s.sentences.length}개
-                    </span>
+      {/* 학원 정리표처럼: 카테고리 카드 안에 변형을 칩으로 배열해 한눈에 고른다 */}
+      <div className="cat-grid">
+        {categories.map(([key, title]) => (
+          <section className="cat-card" key={key}>
+            <h2>{title}</h2>
+            <div className="chip-list">
+              {ordered
+                .filter((s) => s.categoryKey === key)
+                .map((s) => (
+                  <button
+                    key={s.id}
+                    className={`chip ${s.audio ? '' : 'no-audio'}`}
+                    onClick={() => onOpenScript(s.id)}
+                  >
+                    {s.labelKo || s.labelEn}
+                    {s.audio && <span className="chip-dot" aria-label="녹음 있음" />}
                   </button>
-                </li>
-              ))}
-          </ul>
-        </section>
-      ))}
+                ))}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   )
 }
