@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getDB } from '../db/db'
 import { applyEdits, clearEdit, editedIds, saveEdit } from '../db/edits'
 import { recordPractice } from '../db/practice'
@@ -49,6 +49,7 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
   const player = usePlayer(audioBlob, segments, () => void recordPractice(scriptId))
   const recorder = useRecorder()
   const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null)
+  const wholeRecStartRef = useRef<number | null>(null)
 
   useEffect(() => () => {
     if (myVoiceUrl) URL.revokeObjectURL(myVoiceUrl)
@@ -64,6 +65,22 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
     const url = URL.createObjectURL(blob)
     setMyVoiceUrl(url)
     void new Audio(url).play()
+  }
+
+  /** 스크립트 전체를 통으로 녹음. 5초 이상 녹음하고 완료하면 연습 1회로 기록 */
+  const wholeKey = `whole-${scriptId}`
+  const toggleWholeRecording = () => {
+    if (recorder.state.recording === wholeKey) {
+      recorder.stop()
+      if (wholeRecStartRef.current && Date.now() - wholeRecStartRef.current >= 5000) {
+        void recordPractice(scriptId)
+      }
+      wholeRecStartRef.current = null
+    } else {
+      player.stop()
+      wholeRecStartRef.current = Date.now()
+      void recorder.start(wholeKey)
+    }
   }
 
   const toggleReveal = (id: string) => {
@@ -244,6 +261,18 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="controls">
+        <button
+          className={`btn-outline ${recorder.state.recording === wholeKey ? 'rec-live-outline' : ''}`}
+          onClick={toggleWholeRecording}
+        >
+          {recorder.state.recording === wholeKey ? '⏹ 녹음 완료 (기록됨)' : '🎙 전체 녹음'}
+        </button>
+        <button className="btn-outline" onClick={() => void playMine(wholeKey)}>
+          👤 내 전체 녹음
+        </button>
       </div>
 
       <div className="controls">

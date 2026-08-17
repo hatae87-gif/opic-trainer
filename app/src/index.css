@@ -181,17 +181,57 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .tab.active { color: var(--accent); }
 .tab-icon { font-size: 1.25rem; line-height: 1.2; }
 
-/* 날짜별 기록 */
-.day-card {
+/* 기록: 달력 */
+.cal {
   background: var(--surface);
   border: 1px solid var(--surface2);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 12px;
   margin-top: 10px;
 }
-.day-card h2 { margin: 0 0 8px; font-size: 0.9rem; color: var(--text); }
-.day-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.day-list li { display: flex; justify-content: space-between; font-size: 0.9rem; }
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-weekday {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--dim);
+  padding: 4px 0;
+}
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.cal-day.today { border-color: var(--surface2); }
+.cal-day.has-data { background: var(--surface2); }
+.cal-day.selected { border-color: var(--accent); background: #17233c; }
+.cal-badge {
+  font-size: 0.62rem;
+  line-height: 1;
+  color: var(--amber);
+  font-weight: 700;
+}
+.stats-day-title { margin-top: 16px; font-size: 0.95rem; color: var(--text); }
+.stat-chip { cursor: default; }
 
 /* 랜덤 스피킹 */
 .speak-question {
