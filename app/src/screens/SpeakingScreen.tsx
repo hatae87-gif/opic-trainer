@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { getDB } from '../db/db'
 import { applyEdits } from '../db/edits'
 import { recordPractice } from '../db/practice'
-import { latestRecording, useRecorder } from '../recorder/useRecorder'
+import { fmtElapsed, latestRecording, useRecorder } from '../recorder/useRecorder'
 import { substitute, TOPIC_PRESETS, type Topic } from '../topic'
 import type { StoredScript } from '../types'
 
@@ -131,7 +131,9 @@ export function SpeakingScreen() {
             recorder.state.recording ? recorder.stop() : void recorder.start(recKey)
           }
         >
-          {recorder.state.recording ? '⏹ 녹음 끝내기' : '🎙 말하면서 녹음'}
+          {recorder.state.recording
+            ? `⏹ 녹음 끝내기 · ${fmtElapsed(recorder.state.elapsed)}`
+            : '🎙 말하면서 녹음'}
         </button>
         <button className="btn-outline" onClick={() => void playMine()}>👤 내 녹음</button>
       </div>

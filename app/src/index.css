@@ -240,6 +240,8 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .stats-day-title { margin: 0; font-size: 0.95rem; color: var(--text); }
 .stat-chip { cursor: default; }
 .stat-erase { border-color: #c0392b; }
+/* 녹음 중인 문장 버튼: 경과 시간이 들어가도록 늘어난다 */
+.btn-icon.rec { width: auto; padding: 0 10px; font-variant-numeric: tabular-nums; }
 .erase-mark { color: #e74c3c; font-size: 0.78rem; font-weight: 700; }
 
 /* 랜덤 스피킹 */

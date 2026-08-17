@@ -3,7 +3,7 @@ import { getDB } from '../db/db'
 import { applyEdits, clearEdit, editedIds, saveEdit } from '../db/edits'
 import { recordPractice } from '../db/practice'
 import { usePlayer, type Speed } from '../player/usePlayer'
-import { latestRecording, useRecorder } from '../recorder/useRecorder'
+import { fmtElapsed, latestRecording, useRecorder } from '../recorder/useRecorder'
 import { substitute, tokenize, TOPIC_PRESETS, type Topic } from '../topic'
 import type { StoredScript, StoredSentence } from '../types'
 
@@ -212,7 +212,9 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
             }
             aria-label="내 목소리 녹음"
           >
-            {recorder.state.recording === s.sentenceId ? '⏹' : '🎙'}
+            {recorder.state.recording === s.sentenceId
+              ? `⏹ ${fmtElapsed(recorder.state.elapsed)}`
+              : '🎙'}
           </button>
           <button className="btn-icon" onClick={() => void playMine(s.sentenceId)} aria-label="내 녹음 듣기">
             👤
@@ -268,7 +270,9 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
           className={`btn-outline ${recorder.state.recording === wholeKey ? 'rec-live-outline' : ''}`}
           onClick={toggleWholeRecording}
         >
-          {recorder.state.recording === wholeKey ? '⏹ 녹음 완료 (기록됨)' : '🎙 전체 녹음'}
+          {recorder.state.recording === wholeKey
+            ? `⏹ 녹음 완료 · ${fmtElapsed(recorder.state.elapsed)}`
+            : '🎙 전체 녹음'}
         </button>
         <button className="btn-outline" onClick={() => void playMine(wholeKey)}>
           👤 내 전체 녹음

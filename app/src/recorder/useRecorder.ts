@@ -8,12 +8,29 @@ export interface RecorderState {
   /** 지금 녹음 중인 문장 id */
   recording: string | null
   error: string | null
+  /** 녹음 시작 후 경과 초 */
+  elapsed: number
+}
+
+/** 경과 초 → "0:07" 표기 */
+export function fmtElapsed(sec: number): string {
+  const m = Math.floor(sec / 60)
+  const s = String(sec % 60).padStart(2, '0')
+  return `${m}:${s}`
 }
 
 export function useRecorder() {
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
-  const [state, setState] = useState<RecorderState>({ recording: null, error: null })
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [state, setState] = useState<RecorderState>({ recording: null, error: null, elapsed: 0 })
+
+  const stopTick = () => {
+    if (tickRef.current) {
+      clearInterval(tickRef.current)
+      tickRef.current = null
+    }
+  }
 
   const start = useCallback(async (sentenceKey: string) => {
     try {
@@ -42,20 +59,28 @@ export function useRecorder() {
           const excess = all.sort((a, b) => b.createdAt - a.createdAt).slice(KEEP)
           for (const r of excess) await db.delete('recordings', r.id)
         }
-        setState({ recording: null, error: null })
+        stopTick()
+        setState({ recording: null, error: null, elapsed: 0 })
       }
       mediaRef.current = recorder
       recorder.start()
-      setState({ recording: sentenceKey, error: null })
+      setState({ recording: sentenceKey, error: null, elapsed: 0 })
+      stopTick()
+      tickRef.current = setInterval(() => {
+        setState((p) => (p.recording ? { ...p, elapsed: p.elapsed + 1 } : p))
+      }, 1000)
     } catch {
+      stopTick()
       setState({
         recording: null,
         error: '마이크를 사용할 수 없습니다. 권한을 허용했는지 확인해주세요.',
+        elapsed: 0,
       })
     }
   }, [])
 
   const stop = useCallback(() => {
+    stopTick()
     mediaRef.current?.stop()
     mediaRef.current = null
   }, [])
