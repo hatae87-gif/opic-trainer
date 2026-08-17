@@ -4,12 +4,21 @@ import { HomeScreen } from './screens/HomeScreen'
 import { ReviewScreen } from './screens/ReviewScreen'
 import { ScriptScreen } from './screens/ScriptScreen'
 import { SpeakingScreen } from './screens/SpeakingScreen'
+import { StatsScreen } from './screens/StatsScreen'
 
+type Tab = 'home' | 'speaking' | 'stats'
 type Route =
   | { name: 'home' }
   | { name: 'script'; id: string }
   | { name: 'review' }
   | { name: 'speaking' }
+  | { name: 'stats' }
+
+const TABS: { tab: Tab; icon: string; label: string }[] = [
+  { tab: 'home', icon: '📚', label: '스크립트' },
+  { tab: 'speaking', icon: '🎤', label: '스피킹' },
+  { tab: 'stats', icon: '📊', label: '기록' },
+]
 
 export function App() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
@@ -31,20 +40,47 @@ export function App() {
     else setRoute({ name: 'home' })
   }
 
-  switch (route.name) {
-    case 'script':
-      return <ScriptScreen scriptId={route.id} onBack={goHome} />
-    case 'review':
-      return <ReviewScreen onDone={goHome} />
-    case 'speaking':
-      return <SpeakingScreen onBack={goHome} />
-    default:
-      return (
-        <HomeScreen
-          onOpenScript={(id) => setRoute({ name: 'script', id })}
-          onStartReview={() => setRoute({ name: 'review' })}
-          onStartSpeaking={() => setRoute({ name: 'speaking' })}
-        />
-      )
-  }
+  /** 탭이 보이는 최상위 화면인지. 스크립트 상세·복습은 전체 화면을 쓴다 */
+  const activeTab: Tab | null =
+    route.name === 'home' ? 'home' : route.name === 'speaking' ? 'speaking' : route.name === 'stats' ? 'stats' : null
+
+  const screen = (() => {
+    switch (route.name) {
+      case 'script':
+        return <ScriptScreen scriptId={route.id} onBack={goHome} />
+      case 'review':
+        return <ReviewScreen onDone={goHome} />
+      case 'speaking':
+        return <SpeakingScreen />
+      case 'stats':
+        return <StatsScreen />
+      default:
+        return (
+          <HomeScreen
+            onOpenScript={(id) => setRoute({ name: 'script', id })}
+            onStartReview={() => setRoute({ name: 'review' })}
+          />
+        )
+    }
+  })()
+
+  return (
+    <div className={activeTab ? 'with-tabs' : ''}>
+      {screen}
+      {activeTab && (
+        <nav className="tab-bar">
+          {TABS.map(({ tab, icon, label }) => (
+            <button
+              key={tab}
+              className={`tab ${activeTab === tab ? 'active' : ''}`}
+              onClick={() => setRoute({ name: tab } as Route)}
+            >
+              <span className="tab-icon">{icon}</span>
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+    </div>
+  )
 }

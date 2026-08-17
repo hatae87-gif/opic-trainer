@@ -79,4 +79,13 @@ export interface PracticeEntry {
   lastAt: number
 }
 
+/** 날짜별 연습 기록. key = "YYYY-MM-DD|scriptId" */
+export interface PracticeDayEntry {
+  key: string
+  /** YYYY-MM-DD (로컬 기준) */
+  day: string
+  scriptId: string
+  count: number
+}
+
 export type Grade = 'again' | 'hard' | 'good'

@@ -1,5 +1,12 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type { PracticeEntry, RecordingEntry, SentenceEdit, SrsEntry, StoredScript } from '../types'
+import type {
+  PracticeDayEntry,
+  PracticeEntry,
+  RecordingEntry,
+  SentenceEdit,
+  SrsEntry,
+  StoredScript,
+} from '../types'
 
 interface OpicDB extends DBSchema {
   /** 스크립트 본문 + 문장 + 구간. 임포트 때마다 통째로 교체된다 */
@@ -18,13 +25,15 @@ interface OpicDB extends DBSchema {
   edits: { key: string; value: SentenceEdit }
   /** 스크립트별 연습 횟수. 임포트해도 지워지지 않는다 */
   practice: { key: string; value: PracticeEntry }
+  /** 날짜별 연습 기록. 기록 화면의 원본 데이터 */
+  practiceDays: { key: string; value: PracticeDayEntry; indexes: { byDay: string } }
   meta: { key: string; value: { key: string; value: string } }
 }
 
 let dbPromise: Promise<IDBPDatabase<OpicDB>> | null = null
 
 export function getDB(): Promise<IDBPDatabase<OpicDB>> {
-  dbPromise ??= openDB<OpicDB>('opic-trainer', 3, {
+  dbPromise ??= openDB<OpicDB>('opic-trainer', 4, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('scripts', { keyPath: 'id' })
@@ -40,6 +49,10 @@ export function getDB(): Promise<IDBPDatabase<OpicDB>> {
       }
       if (oldVersion < 3) {
         db.createObjectStore('practice', { keyPath: 'scriptId' })
+      }
+      if (oldVersion < 4) {
+        const days = db.createObjectStore('practiceDays', { keyPath: 'key' })
+        days.createIndex('byDay', 'day')
       }
     },
   })

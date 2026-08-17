@@ -8,10 +8,9 @@ import type { StoredScript } from '../types'
 interface Props {
   onOpenScript: (id: string) => void
   onStartReview: () => void
-  onStartSpeaking: () => void
 }
 
-export function HomeScreen({ onOpenScript, onStartReview, onStartSpeaking }: Props) {
+export function HomeScreen({ onOpenScript, onStartReview }: Props) {
   const [scripts, setScripts] = useState<StoredScript[]>([])
   const [dueCount, setDueCount] = useState(0)
   const [counts, setCounts] = useState<Map<string, number>>(new Map())
@@ -75,12 +74,6 @@ export function HomeScreen({ onOpenScript, onStartReview, onStartSpeaking }: Pro
       {dueCount > 0 && (
         <button className="due-banner" onClick={onStartReview}>
           오늘 복습할 문장 <strong>{dueCount}개</strong> — 시작하기 →
-        </button>
-      )}
-
-      {scripts.length > 0 && (
-        <button className="speak-banner" onClick={onStartSpeaking}>
-          🎤 랜덤 스피킹 연습 — 주제 뽑고 바로 말하기 →
         </button>
       )}
 

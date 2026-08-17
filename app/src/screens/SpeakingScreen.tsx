@@ -6,10 +6,6 @@ import { latestRecording, useRecorder } from '../recorder/useRecorder'
 import { substitute, TOPIC_PRESETS, type Topic } from '../topic'
 import type { StoredScript } from '../types'
 
-interface Props {
-  onBack: () => void
-}
-
 interface Prompt {
   script: StoredScript
   topic: Topic
@@ -27,7 +23,7 @@ function draw(scripts: StoredScript[], prevScriptId?: string): Prompt {
  * 랜덤 스피킹 연습: 카테고리+주제가 OPIc 질문처럼 랜덤으로 나오면
  * 먼저 소리 내어 말해 보고, 그다음에 스크립트·선생님 음성으로 확인한다.
  */
-export function SpeakingScreen({ onBack }: Props) {
+export function SpeakingScreen() {
   const [scripts, setScripts] = useState<StoredScript[]>([])
   const [prompt, setPrompt] = useState<Prompt | null>(null)
   const [revealed, setRevealed] = useState(false)
@@ -103,23 +99,19 @@ export function SpeakingScreen({ onBack }: Props) {
   if (!prompt) {
     return (
       <div className="screen">
-        <header className="bar">
-          <button className="btn-icon" onClick={onBack} aria-label="뒤로">←</button>
-          <div className="bar-title"><strong>랜덤 스피킹</strong></div>
+        <header className="home-header">
+          <h1>랜덤 스피킹</h1>
         </header>
-        <p className="dim">먼저 자료를 가져와야 연습할 수 있습니다.</p>
+        <p className="dim">먼저 [스크립트] 탭에서 자료를 가져와야 연습할 수 있습니다.</p>
       </div>
     )
   }
 
   return (
     <div className="screen">
-      <header className="bar">
-        <button className="btn-icon" onClick={onBack} aria-label="뒤로">←</button>
-        <div className="bar-title">
-          <strong>랜덤 스피킹</strong>
-          <span className="dim">이번 세션 {done}개 완료</span>
-        </div>
+      <header className="home-header">
+        <h1>랜덤 스피킹</h1>
+        <span className="dim">이번 세션 {done}개 완료</span>
       </header>
 
       <div className="speak-question">
