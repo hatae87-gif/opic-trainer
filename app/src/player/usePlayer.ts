@@ -9,6 +9,10 @@ export interface PlayerState {
   speed: Speed
   /** 전체 재생 모드인지 (문장 하나만인지) */
   wholeMode: boolean
+  /** 현재 재생 위치(초) */
+  time: number
+  /** 오디오 총 길이(초). 메타데이터 로드 전엔 0 */
+  duration: number
 }
 
 export interface Segment {
@@ -26,7 +30,14 @@ export function usePlayer(blob: Blob | null, segments: Segment[], onWholeComplet
   const urlRef = useRef<string | null>(null)
   /** timeupdate 핸들러가 참조하는 현재 구간. state와 달리 즉시 갱신된다 */
   const activeRef = useRef<{ start: number; end: number; order: number; loop: boolean; whole: boolean } | null>(null)
-  const [state, setState] = useState<PlayerState>({ playing: null, loop: false, speed: 1, wholeMode: false })
+  const [state, setState] = useState<PlayerState>({
+    playing: null,
+    loop: false,
+    speed: 1,
+    wholeMode: false,
+    time: 0,
+    duration: 0,
+  })
   const speedRef = useRef<Speed>(1)
   /** 전체 재생을 끝까지 들었을 때 알림 (stop으로 끊은 경우는 제외) */
   const completeRef = useRef(onWholeComplete)
@@ -43,7 +54,13 @@ export function usePlayer(blob: Blob | null, segments: Segment[], onWholeComplet
     audioRef.current = audio
     urlRef.current = url
 
+    const onMeta = () => {
+      if (Number.isFinite(audio.duration)) {
+        setState((p) => ({ ...p, duration: audio.duration }))
+      }
+    }
     const onTime = () => {
+      setState((p) => ({ ...p, time: audio.currentTime }))
       const active = activeRef.current
       if (!active) return
       if (audio.currentTime >= active.end) {
@@ -74,9 +91,11 @@ export function usePlayer(blob: Blob | null, segments: Segment[], onWholeComplet
       setState((p) => ({ ...p, playing: null, wholeMode: false }))
       if (wasWhole) completeRef.current?.()
     }
+    audio.addEventListener('loadedmetadata', onMeta)
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('ended', onEnded)
     return () => {
+      audio.removeEventListener('loadedmetadata', onMeta)
       audio.removeEventListener('timeupdate', onTime)
       audio.removeEventListener('ended', onEnded)
       audio.pause()

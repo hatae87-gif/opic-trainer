@@ -242,6 +242,8 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .stat-erase { border-color: #c0392b; }
 /* 녹음 중인 문장 버튼: 경과 시간이 들어가도록 늘어난다 */
 .btn-icon.rec { width: auto; padding: 0 10px; font-variant-numeric: tabular-nums; }
+/* 전체 재생: 시간 표기가 흔들리지 않게 고정폭 숫자 */
+.whole-play { font-variant-numeric: tabular-nums; }
 .erase-mark { color: #e74c3c; font-size: 0.78rem; font-weight: 700; }
 
 /* 랜덤 스피킹 */

@@ -72,6 +72,9 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
 
   if (!script) return <div className="screen"><p>불러오는 중…</p></div>
 
+  /** 오디오 총 길이: 메타데이터가 우선, 없으면 번들의 audioDuration */
+  const totalDur = player.state.duration || script.audioDuration || 0
+
   /** 스크립트 전체를 통으로 녹음. 5초 이상 녹음하고 완료하면 연습 1회로 기록 */
   const toggleWholeRecording = () => {
     if (recorder.state.recording === wholeKey) {
@@ -266,10 +269,12 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
       <div className="controls">
         {player.hasAudio && (
           <button
-            className="btn"
+            className="btn whole-play"
             onClick={() => (player.state.wholeMode ? player.stop() : player.playWhole())}
           >
-            {player.state.wholeMode ? '⏹ 정지' : '▶ 전체 재생'}
+            {player.state.wholeMode
+              ? `⏹ 정지 · ${fmtElapsed(Math.floor(player.state.time))} / ${fmtElapsed(Math.round(totalDur))}`
+              : `▶ 전체 재생${totalDur ? ` · ${fmtElapsed(Math.round(totalDur))}` : ''}`}
           </button>
         )}
         <div className="speed-group">
