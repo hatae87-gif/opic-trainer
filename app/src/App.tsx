@@ -3,8 +3,13 @@ import { requestPersistence } from './db/db'
 import { HomeScreen } from './screens/HomeScreen'
 import { ReviewScreen } from './screens/ReviewScreen'
 import { ScriptScreen } from './screens/ScriptScreen'
+import { SpeakingScreen } from './screens/SpeakingScreen'
 
-type Route = { name: 'home' } | { name: 'script'; id: string } | { name: 'review' }
+type Route =
+  | { name: 'home' }
+  | { name: 'script'; id: string }
+  | { name: 'review' }
+  | { name: 'speaking' }
 
 export function App() {
   const [route, setRoute] = useState<Route>({ name: 'home' })
@@ -31,11 +36,14 @@ export function App() {
       return <ScriptScreen scriptId={route.id} onBack={goHome} />
     case 'review':
       return <ReviewScreen onDone={goHome} />
+    case 'speaking':
+      return <SpeakingScreen onBack={goHome} />
     default:
       return (
         <HomeScreen
           onOpenScript={(id) => setRoute({ name: 'script', id })}
           onStartReview={() => setRoute({ name: 'review' })}
+          onStartSpeaking={() => setRoute({ name: 'speaking' })}
         />
       )
   }

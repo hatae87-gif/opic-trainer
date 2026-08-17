@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getDB } from '../db/db'
 import { applyEdits, clearEdit, editedIds, saveEdit } from '../db/edits'
+import { recordPractice } from '../db/practice'
 import { usePlayer, type Speed } from '../player/usePlayer'
 import { latestRecording, useRecorder } from '../recorder/useRecorder'
 import { substitute, tokenize, TOPIC_PRESETS, type Topic } from '../topic'
@@ -44,7 +45,8 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
     () => script?.sentences.map((s) => ({ order: s.order, start: s.start, end: s.end })) ?? [],
     [script],
   )
-  const player = usePlayer(audioBlob, segments)
+  // 전체 재생을 끝까지 들으면 연습 1회로 기록한다
+  const player = usePlayer(audioBlob, segments, () => void recordPractice(scriptId))
   const recorder = useRecorder()
   const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null)
 

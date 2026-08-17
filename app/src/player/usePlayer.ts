@@ -21,13 +21,16 @@ export interface Segment {
  * 스크립트 하나의 오디오를 다루는 재생 엔진.
  * 단일 <audio> 엘리먼트 + timeupdate 로 문장 구간 A-B 재생/반복을 구현한다.
  */
-export function usePlayer(blob: Blob | null, segments: Segment[]) {
+export function usePlayer(blob: Blob | null, segments: Segment[], onWholeComplete?: () => void) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const urlRef = useRef<string | null>(null)
   /** timeupdate 핸들러가 참조하는 현재 구간. state와 달리 즉시 갱신된다 */
   const activeRef = useRef<{ start: number; end: number; order: number; loop: boolean; whole: boolean } | null>(null)
   const [state, setState] = useState<PlayerState>({ playing: null, loop: false, speed: 1, wholeMode: false })
   const speedRef = useRef<Speed>(1)
+  /** 전체 재생을 끝까지 들었을 때 알림 (stop으로 끊은 경우는 제외) */
+  const completeRef = useRef(onWholeComplete)
+  completeRef.current = onWholeComplete
 
   useEffect(() => {
     if (!blob) return
@@ -56,6 +59,7 @@ export function usePlayer(blob: Blob | null, segments: Segment[]) {
             activeRef.current = null
             audio.pause()
             setState((p) => ({ ...p, playing: null, wholeMode: false }))
+            completeRef.current?.()
           }
         } else {
           activeRef.current = null
@@ -65,8 +69,10 @@ export function usePlayer(blob: Blob | null, segments: Segment[]) {
       }
     }
     const onEnded = () => {
+      const wasWhole = activeRef.current?.whole ?? false
       activeRef.current = null
       setState((p) => ({ ...p, playing: null, wholeMode: false }))
+      if (wasWhole) completeRef.current?.()
     }
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('ended', onEnded)
@@ -109,8 +115,8 @@ export function usePlayer(blob: Blob | null, segments: Segment[]) {
       audio.currentTime = first.start
       setState((p) => ({ ...p, playing: first.order, loop: false, wholeMode: true }))
     } else {
-      // 구간 정보가 아예 없으면 그냥 처음부터 튼다
-      activeRef.current = null
+      // 구간 정보가 아예 없으면 그냥 처음부터 튼다. 완주 감지를 위해 whole 표시는 유지
+      activeRef.current = { start: 0, end: Number.POSITIVE_INFINITY, order: -1, loop: false, whole: true }
       audio.currentTime = 0
       setState((p) => ({ ...p, playing: null, wholeMode: true }))
     }

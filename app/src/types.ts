@@ -72,4 +72,11 @@ export interface SentenceEdit {
   updatedAt: number
 }
 
+/** 스크립트별 연습 횟수. 전체 재생 완주 또는 스피킹 연습 완료 시 +1 */
+export interface PracticeEntry {
+  scriptId: string
+  count: number
+  lastAt: number
+}
+
 export type Grade = 'again' | 'hard' | 'good'

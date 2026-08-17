@@ -152,6 +152,54 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .btn-icon.rec { border-color: var(--red); color: var(--red); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: 0.5; } }
 
+/* 랜덤 스피킹 */
+.speak-banner {
+  display: block;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 13px 16px;
+  margin-top: 10px;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+.speak-banner:active { background: var(--surface2); }
+.speak-question {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 16px;
+  padding: 22px 18px;
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+.speak-topic { font-size: 1.6rem; font-weight: 700; }
+.speak-detail { color: var(--accent); font-size: 1rem; }
+.speak-hint { margin: 6px 0 0; font-size: 0.85rem; }
+.speak-hint em { color: var(--text); font-style: normal; font-weight: 600; }
+.speak-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+.speak-actions .btn.rec-live { background: #c0392b; }
+.speak-reveal { width: 100%; padding: 12px; }
+.speak-script { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.speak-next { display: flex; gap: 8px; margin-top: 16px; }
+.speak-next .btn { flex: 2; }
+.speak-next .btn-outline { flex: 1; }
+
+/* 연습 횟수 표시 */
+.cat-count {
+  float: right;
+  color: var(--dim);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: none;
+}
+.chip-count { color: var(--amber); font-size: 0.78rem; font-weight: 600; }
+
 /* 홈: 정리표 스타일 카테고리 카드 + 변형 칩 */
 .cat-grid {
   display: grid;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getDB } from '../db/db'
+import { practiceCounts } from '../db/practice'
 import { importPack, type ImportSummary } from '../import/importPack'
 import { dueSentenceIds } from '../srs/srs'
 import type { StoredScript } from '../types'
@@ -7,11 +8,13 @@ import type { StoredScript } from '../types'
 interface Props {
   onOpenScript: (id: string) => void
   onStartReview: () => void
+  onStartSpeaking: () => void
 }
 
-export function HomeScreen({ onOpenScript, onStartReview }: Props) {
+export function HomeScreen({ onOpenScript, onStartReview, onStartSpeaking }: Props) {
   const [scripts, setScripts] = useState<StoredScript[]>([])
   const [dueCount, setDueCount] = useState(0)
+  const [counts, setCounts] = useState<Map<string, number>>(new Map())
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -20,6 +23,7 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
     const db = await getDB()
     setScripts(await db.getAll('scripts'))
     setDueCount((await dueSentenceIds()).length)
+    setCounts(await practiceCounts())
   }
 
   useEffect(() => {
@@ -74,6 +78,12 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
         </button>
       )}
 
+      {scripts.length > 0 && (
+        <button className="speak-banner" onClick={onStartSpeaking}>
+          🎤 랜덤 스피킹 연습 — 주제 뽑고 바로 말하기 →
+        </button>
+      )}
+
       {scripts.length === 0 && !message && (
         <div className="empty">
           <p>아직 자료가 없습니다.</p>
@@ -86,25 +96,34 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
 
       {/* 학원 정리표처럼: 카테고리 카드 안에 변형을 칩으로 배열해 한눈에 고른다 */}
       <div className="cat-grid">
-        {categories.map(([key, title]) => (
-          <section className="cat-card" key={key}>
-            <h2>{title}</h2>
-            <div className="chip-list">
-              {ordered
-                .filter((s) => s.categoryKey === key)
-                .map((s) => (
-                  <button
-                    key={s.id}
-                    className={`chip ${s.audio ? '' : 'no-audio'}`}
-                    onClick={() => onOpenScript(s.id)}
-                  >
-                    {s.labelKo || s.labelEn}
-                    {s.audio && <span className="chip-dot" aria-label="녹음 있음" />}
-                  </button>
-                ))}
-            </div>
-          </section>
-        ))}
+        {categories.map(([key, title]) => {
+          const own = ordered.filter((s) => s.categoryKey === key)
+          const total = own.reduce((n, s) => n + (counts.get(s.id) ?? 0), 0)
+          return (
+            <section className="cat-card" key={key}>
+              <h2>
+                {title}
+                {total > 0 && <span className="cat-count">연습 {total}회</span>}
+              </h2>
+              <div className="chip-list">
+                {own.map((s) => {
+                  const c = counts.get(s.id) ?? 0
+                  return (
+                    <button
+                      key={s.id}
+                      className={`chip ${s.audio ? '' : 'no-audio'}`}
+                      onClick={() => onOpenScript(s.id)}
+                    >
+                      {s.labelKo || s.labelEn}
+                      {s.audio && <span className="chip-dot" aria-label="녹음 있음" />}
+                      {c > 0 && <span className="chip-count">×{c}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })}
       </div>
     </div>
   )
