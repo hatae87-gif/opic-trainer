@@ -230,8 +230,17 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
   color: var(--amber);
   font-weight: 700;
 }
-.stats-day-title { margin-top: 16px; font-size: 0.95rem; color: var(--text); }
+.stats-day-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+.stats-day-title { margin: 0; font-size: 0.95rem; color: var(--text); }
 .stat-chip { cursor: default; }
+.stat-erase { border-color: #c0392b; }
+.erase-mark { color: #e74c3c; font-size: 0.78rem; font-weight: 700; }
 
 /* 랜덤 스피킹 */
 .speak-question {

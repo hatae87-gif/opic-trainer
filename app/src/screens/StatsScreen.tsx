@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getDB } from '../db/db'
-import { practiceHistory } from '../db/practice'
+import { practiceHistory, removePractice } from '../db/practice'
 import type { PracticeDayEntry, StoredScript } from '../types'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -25,14 +25,23 @@ export function StatsScreen() {
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
   const [selected, setSelected] = useState<string>(todayString())
+  /** 수정 모드: 칩을 누르면 그 기록을 1회씩 지운다 */
+  const [editing, setEditing] = useState(false)
+
+  const reload = async () => {
+    const db = await getDB()
+    setScripts(await db.getAll('scripts'))
+    setHistory(await practiceHistory())
+  }
 
   useEffect(() => {
-    void (async () => {
-      const db = await getDB()
-      setScripts(await db.getAll('scripts'))
-      setHistory(await practiceHistory())
-    })()
+    void reload()
   }, [])
+
+  const erase = async (scriptId: string) => {
+    await removePractice(scriptId, selected)
+    await reload()
+  }
 
   /** 날짜 → 그날 총 연습 횟수 */
   const dayTotals = useMemo(() => {
@@ -114,10 +123,24 @@ export function StatsScreen() {
         </div>
       </div>
 
-      <h2 className="stats-day-title">
-        {selected}
-        {selected === today ? ' (오늘)' : ''} — {selectedTotal > 0 ? `${selectedTotal}회 연습` : '기록 없음'}
-      </h2>
+      <div className="stats-day-row">
+        <h2 className="stats-day-title">
+          {selected}
+          {selected === today ? ' (오늘)' : ''} — {selectedTotal > 0 ? `${selectedTotal}회 연습` : '기록 없음'}
+        </h2>
+        {selectedTotal > 0 && (
+          <button
+            className={`chip ${editing ? 'on' : ''}`}
+            onClick={() => setEditing((e) => !e)}
+          >
+            {editing ? '수정 완료' : '기록 지우기'}
+          </button>
+        )}
+      </div>
+
+      {editing && (
+        <p className="dim edit-hint">지우고 싶은 항목을 누르면 1회씩 줄어듭니다.</p>
+      )}
 
       {categories.length === 0 && (
         <p className="dim">
@@ -138,12 +161,20 @@ export function StatsScreen() {
                 <span className="cat-count">{total}회</span>
               </h2>
               <div className="chip-list">
-                {own.map((s) => (
-                  <span key={s.id} className="chip stat-chip">
-                    {s.labelKo || s.labelEn}
-                    <span className="chip-count">×{selectedCounts.get(s.id)}</span>
-                  </span>
-                ))}
+                {own.map((s) =>
+                  editing ? (
+                    <button key={s.id} className="chip stat-erase" onClick={() => void erase(s.id)}>
+                      {s.labelKo || s.labelEn}
+                      <span className="chip-count">×{selectedCounts.get(s.id)}</span>
+                      <span className="erase-mark">−1</span>
+                    </button>
+                  ) : (
+                    <span key={s.id} className="chip stat-chip">
+                      {s.labelKo || s.labelEn}
+                      <span className="chip-count">×{selectedCounts.get(s.id)}</span>
+                    </span>
+                  ),
+                )}
               </div>
             </section>
           )

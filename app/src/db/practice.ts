@@ -31,6 +31,22 @@ export async function practiceCounts(): Promise<Map<string, number>> {
   return new Map(all.map((p) => [p.scriptId, p.count]))
 }
 
+/** 특정 날짜의 연습 기록을 1회 지운다 (실수 기록 정정용). 누적 합계도 함께 줄인다 */
+export async function removePractice(scriptId: string, day: string): Promise<void> {
+  const db = await getDB()
+  const key = `${day}|${scriptId}`
+  const dayEntry = await db.get('practiceDays', key)
+  if (!dayEntry) return
+  if (dayEntry.count <= 1) await db.delete('practiceDays', key)
+  else await db.put('practiceDays', { ...dayEntry, count: dayEntry.count - 1 })
+
+  const total = await db.get('practice', scriptId)
+  if (total) {
+    if (total.count <= 1) await db.delete('practice', scriptId)
+    else await db.put('practice', { ...total, count: total.count - 1 })
+  }
+}
+
 /** 날짜별 기록 전체. 최근 날짜부터 */
 export async function practiceHistory(): Promise<Map<string, PracticeDayEntry[]>> {
   const db = await getDB()
