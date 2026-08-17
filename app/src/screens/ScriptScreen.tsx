@@ -3,7 +3,8 @@ import { getDB } from '../db/db'
 import { applyEdits, clearEdit, editedIds, saveEdit } from '../db/edits'
 import { recordPractice } from '../db/practice'
 import { usePlayer, type Speed } from '../player/usePlayer'
-import { fmtElapsed, latestRecording, useRecorder } from '../recorder/useRecorder'
+import { useMyVoice } from '../recorder/useMyVoice'
+import { fmtElapsed, latestRecordingEntry, useRecorder } from '../recorder/useRecorder'
 import { substitute, tokenize, TOPIC_PRESETS, type Topic } from '../topic'
 import type { StoredScript, StoredSentence } from '../types'
 
@@ -48,27 +49,30 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
   // 전체 재생을 끝까지 들으면 연습 1회로 기록한다
   const player = usePlayer(audioBlob, segments, () => void recordPractice(scriptId))
   const recorder = useRecorder()
-  const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null)
+  const myVoice = useMyVoice(() => player.stop())
   const wholeRecStartRef = useRef<number | null>(null)
+  const wholeKey = `whole-${scriptId}`
+  /** 저장된 전체 녹음의 길이(초). 버튼에 표시한다 */
+  const [wholeDur, setWholeDur] = useState<number | null>(null)
+  const prevRecordingRef = useRef<string | null>(null)
 
-  useEffect(() => () => {
-    if (myVoiceUrl) URL.revokeObjectURL(myVoiceUrl)
-  }, [myVoiceUrl])
+  useEffect(() => {
+    void latestRecordingEntry(wholeKey).then((e) => setWholeDur(e?.duration ?? null))
+  }, [wholeKey])
+
+  // 전체 녹음이 끝나면(저장은 비동기) 길이 표시를 갱신한다
+  useEffect(() => {
+    if (prevRecordingRef.current === wholeKey && recorder.state.recording === null) {
+      setTimeout(() => {
+        void latestRecordingEntry(wholeKey).then((e) => setWholeDur(e?.duration ?? null))
+      }, 500)
+    }
+    prevRecordingRef.current = recorder.state.recording
+  }, [recorder.state.recording, wholeKey])
 
   if (!script) return <div className="screen"><p>불러오는 중…</p></div>
 
-  const playMine = async (sentenceKey: string) => {
-    const blob = await latestRecording(sentenceKey)
-    if (!blob) return
-    player.stop()
-    if (myVoiceUrl) URL.revokeObjectURL(myVoiceUrl)
-    const url = URL.createObjectURL(blob)
-    setMyVoiceUrl(url)
-    void new Audio(url).play()
-  }
-
   /** 스크립트 전체를 통으로 녹음. 5초 이상 녹음하고 완료하면 연습 1회로 기록 */
-  const wholeKey = `whole-${scriptId}`
   const toggleWholeRecording = () => {
     if (recorder.state.recording === wholeKey) {
       recorder.stop()
@@ -78,6 +82,7 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
       wholeRecStartRef.current = null
     } else {
       player.stop()
+      myVoice.stop()
       wholeRecStartRef.current = Date.now()
       void recorder.start(wholeKey)
     }
@@ -216,9 +221,24 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
               ? `⏹ ${fmtElapsed(recorder.state.elapsed)}`
               : '🎙'}
           </button>
-          <button className="btn-icon" onClick={() => void playMine(s.sentenceId)} aria-label="내 녹음 듣기">
-            👤
-          </button>
+          {myVoice.state.key === s.sentenceId && myVoice.state.paused ? (
+            <>
+              <button className="btn-icon on" onClick={myVoice.resume} aria-label="이어 듣기">
+                ▶
+              </button>
+              <button className="btn-icon on" onClick={myVoice.restart} aria-label="처음부터 듣기">
+                ⏮
+              </button>
+            </>
+          ) : (
+            <button
+              className={`btn-icon ${myVoice.state.key === s.sentenceId ? 'on' : ''}`}
+              onClick={() => myVoice.toggle(s.sentenceId)}
+              aria-label="내 녹음 듣기"
+            >
+              {myVoice.state.key === s.sentenceId ? '⏸' : '👤'}
+            </button>
+          )}
           <button
             className={`btn-icon ${edited.has(s.sentenceId) ? 'on' : ''}`}
             onClick={() => startEdit(s)}
@@ -274,9 +294,18 @@ export function ScriptScreen({ scriptId, onBack }: Props) {
             ? `⏹ 녹음 완료 · ${fmtElapsed(recorder.state.elapsed)}`
             : '🎙 전체 녹음'}
         </button>
-        <button className="btn-outline" onClick={() => void playMine(wholeKey)}>
-          👤 내 전체 녹음
-        </button>
+        {myVoice.state.key === wholeKey && myVoice.state.paused ? (
+          <>
+            <button className="btn-outline" onClick={myVoice.resume}>▶ 이어 듣기</button>
+            <button className="btn-outline" onClick={myVoice.restart}>⏮ 처음부터</button>
+          </>
+        ) : (
+          <button className="btn-outline" onClick={() => myVoice.toggle(wholeKey)}>
+            {myVoice.state.key === wholeKey
+              ? '⏸ 일시정지'
+              : `👤 내 전체 녹음${wholeDur ? ` · ${fmtElapsed(wholeDur)}` : ''}`}
+          </button>
+        )}
       </div>
 
       <div className="controls">

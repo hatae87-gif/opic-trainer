@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { getDB } from '../db/db'
 import { applyEdits } from '../db/edits'
 import { recordPractice } from '../db/practice'
-import { fmtElapsed, latestRecording, useRecorder } from '../recorder/useRecorder'
+import { useMyVoice } from '../recorder/useMyVoice'
+import { fmtElapsed, latestRecordingEntry, useRecorder } from '../recorder/useRecorder'
 import { substitute, TOPIC_PRESETS, type Topic } from '../topic'
 import type { StoredScript } from '../types'
 
@@ -31,6 +32,8 @@ export function SpeakingScreen() {
   const recorder = useRecorder()
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const urlRef = useRef<string | null>(null)
+  const [myDur, setMyDur] = useState<number | null>(null)
+  const prevRecordingRef = useRef<string | null>(null)
 
   useEffect(() => {
     void (async () => {
@@ -57,30 +60,43 @@ export function SpeakingScreen() {
     }
   }
 
-  const playBlob = (blob: Blob) => {
-    stopAudio()
-    const url = URL.createObjectURL(blob)
-    const audio = new Audio(url)
-    audioRef.current = audio
-    urlRef.current = url
-    void audio.play()
+  const myVoice = useMyVoice(stopAudio)
+
+  const refreshMyDur = async (key: string) => {
+    setMyDur((await latestRecordingEntry(key))?.duration ?? null)
   }
+
+  // 문제가 바뀌면 그 문제의 기존 녹음 길이를, 녹음이 끝나면 새 길이를 보여준다
+  useEffect(() => {
+    if (recKey) void refreshMyDur(recKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recKey])
+  useEffect(() => {
+    if (prevRecordingRef.current === recKey && recorder.state.recording === null && recKey) {
+      setTimeout(() => void refreshMyDur(recKey), 500)
+    }
+    prevRecordingRef.current = recorder.state.recording
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorder.state.recording, recKey])
 
   const playTeacher = async () => {
     if (!prompt) return
     const db = await getDB()
     const audio = await db.get('audio', prompt.script.id)
-    if (audio) playBlob(audio.blob)
-  }
-
-  const playMine = async () => {
-    const blob = await latestRecording(recKey)
-    if (blob) playBlob(blob)
+    if (!audio) return
+    myVoice.stop()
+    stopAudio()
+    const url = URL.createObjectURL(audio.blob)
+    const el = new Audio(url)
+    audioRef.current = el
+    urlRef.current = url
+    void el.play()
   }
 
   const next = async (counted: boolean) => {
     if (!prompt) return
     stopAudio()
+    myVoice.stop()
     if (recorder.state.recording) recorder.stop()
     if (counted) {
       await recordPractice(prompt.script.id)
@@ -135,7 +151,18 @@ export function SpeakingScreen() {
             ? `⏹ 녹음 끝내기 · ${fmtElapsed(recorder.state.elapsed)}`
             : '🎙 말하면서 녹음'}
         </button>
-        <button className="btn-outline" onClick={() => void playMine()}>👤 내 녹음</button>
+        {myVoice.state.key === recKey && myVoice.state.paused ? (
+          <>
+            <button className="btn-outline" onClick={myVoice.resume}>▶ 이어</button>
+            <button className="btn-outline" onClick={myVoice.restart}>⏮ 처음</button>
+          </>
+        ) : (
+          <button className="btn-outline" onClick={() => myVoice.toggle(recKey)}>
+            {myVoice.state.key === recKey
+              ? '⏸ 일시정지'
+              : `👤 내 녹음${myDur ? ` · ${fmtElapsed(myDur)}` : ''}`}
+          </button>
+        )}
       </div>
       {recorder.state.error && <p className="notice">{recorder.state.error}</p>}
 

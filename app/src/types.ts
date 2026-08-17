@@ -59,6 +59,8 @@ export interface RecordingEntry {
   sentenceId: string
   blob: Blob
   createdAt: number
+  /** 녹음 길이(초). 예전 녹음에는 없을 수 있다 */
+  duration?: number
 }
 
 /**

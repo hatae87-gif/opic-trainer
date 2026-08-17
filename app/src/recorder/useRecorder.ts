@@ -23,6 +23,7 @@ export function useRecorder() {
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const startedAtRef = useRef(0)
   const [state, setState] = useState<RecorderState>({ recording: null, error: null, elapsed: 0 })
 
   const stopTick = () => {
@@ -53,6 +54,8 @@ export function useRecorder() {
             sentenceId: sentenceKey,
             blob,
             createdAt: Date.now(),
+            // webm은 메타데이터에 길이가 안 박히는 경우가 많아 녹음 시점에 재서 저장한다
+            duration: Math.round((Date.now() - startedAtRef.current) / 1000),
           })
           // 오래된 녹음 정리
           const all = await db.getAllFromIndex('recordings', 'bySentence', sentenceKey)
@@ -64,6 +67,7 @@ export function useRecorder() {
       }
       mediaRef.current = recorder
       recorder.start()
+      startedAtRef.current = Date.now()
       setState({ recording: sentenceKey, error: null, elapsed: 0 })
       stopTick()
       tickRef.current = setInterval(() => {
@@ -89,8 +93,15 @@ export function useRecorder() {
 }
 
 export async function latestRecording(sentenceKey: string): Promise<Blob | null> {
+  return (await latestRecordingEntry(sentenceKey))?.blob ?? null
+}
+
+export async function latestRecordingEntry(
+  sentenceKey: string,
+): Promise<{ blob: Blob; duration?: number } | null> {
   const db = await getDB()
   const all = await db.getAllFromIndex('recordings', 'bySentence', sentenceKey)
   if (all.length === 0) return null
-  return all.sort((a, b) => b.createdAt - a.createdAt)[0].blob
+  const latest = all.sort((a, b) => b.createdAt - a.createdAt)[0]
+  return { blob: latest.blob, duration: latest.duration }
 }
