@@ -27,11 +27,23 @@ export interface ManifestScript {
   koAligned: boolean
 }
 
+export interface MockTest {
+  no: number
+  questions: string[]
+}
+
+export interface MockSection {
+  /** 기본 / 심화 */
+  name: string
+  tests: MockTest[]
+}
+
 export interface Manifest {
   version: 1
   createdAt: string
   student: string
   scripts: ManifestScript[]
+  mockExam?: MockSection[]
 }
 
 /** DB에 저장되는 문장. sentenceId가 학습 기록의 영속 키다 */

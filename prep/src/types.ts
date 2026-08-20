@@ -8,6 +8,8 @@ export interface SourceFile {
   day: number
   /** 수업 날짜 YYMMDD */
   date: string
+  /** 파일 수정 시각(ms). zip 내부 파일은 zip 자체의 수정 시각 */
+  mtime: number
   data: Buffer
   sha256: string
 }
@@ -87,9 +89,22 @@ export interface BuiltScript extends ParsedScript {
   unitSource?: 'slash' | 'auto'
 }
 
+/** 모의고사 한 세트 (Test 1 = 15문항) */
+export interface MockTest {
+  no: number
+  questions: string[]
+}
+
+export interface MockSection {
+  /** 기본 / 심화 */
+  name: string
+  tests: MockTest[]
+}
+
 export interface Manifest {
   version: 1
   createdAt: string
   student: string
   scripts: BuiltScript[]
+  mockExam?: MockSection[]
 }

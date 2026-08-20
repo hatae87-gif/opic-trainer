@@ -5,6 +5,7 @@ import { alignSentences } from './align.js'
 import { carrySlashes, loadPreviousAnnotations, normalizeForCompare } from './annotate.js'
 import { writeBundle } from './bundle.js'
 import { categoryKey, parseScriptDoc } from './parseDocx.js'
+import { parseMockDoc } from './parseMock.js'
 import { scanMaterials } from './scan.js'
 import { hasUnitMarks, splitScript } from './split.js'
 import { transcribe } from './transcribe.js'
@@ -228,7 +229,26 @@ async function main() {
     return
   }
 
-  const out = writeBundle(doc.student, scripts, audioByScript)
+  // ---- 모의고사 ----
+  let mockExam = undefined
+  if (scan.mockDoc) {
+    mockExam = await parseMockDoc(scan.mockDoc.data)
+    const total = mockExam.reduce(
+      (n, s) => n + s.tests.reduce((m, t) => m + t.questions.length, 0),
+      0,
+    )
+    console.log(
+      `모의고사: ${mockExam.map((s) => `${s.name} ${s.tests.length}세트`).join(' · ')} · 총 ${total}문항`,
+    )
+    for (const s of mockExam) {
+      const odd = s.tests.filter((t) => t.questions.length !== 15)
+      for (const t of odd) {
+        console.warn(`  ! ${s.name} Test ${t.no}: 문항이 ${t.questions.length}개입니다 (기대값 15)`)
+      }
+    }
+  }
+
+  const out = writeBundle(doc.student, scripts, audioByScript, mockExam)
   console.log(`\n✅ 번들 생성: ${out}`)
   console.log('이 파일을 카톡 "나에게 보내기" 등으로 폰에 전송한 뒤, 앱에서 가져오기 하세요.')
 }

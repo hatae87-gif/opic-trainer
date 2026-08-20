@@ -77,6 +77,9 @@ export async function importPack(file: File): Promise<ImportSummary> {
   await tx
     .objectStore('meta')
     .put({ key: 'lastImport', value: `${manifest.createdAt}|${manifest.student}` })
+  if (manifest.mockExam) {
+    await tx.objectStore('meta').put({ key: 'mockExam', value: JSON.stringify(manifest.mockExam) })
+  }
   await tx.done
 
   return { student: manifest.student, scripts: manifest.scripts.length, sentences, withAudio, withTiming, carriedOver }

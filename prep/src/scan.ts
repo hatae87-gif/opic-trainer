@@ -9,6 +9,7 @@ const DAY_DIR = /^DAY(\d+)\((\d{6})\)$/i
 const CURATED_DAY = 999
 const AUDIO_EXT = /\.(m4a|mp3|wav|mp4|aac)$/i
 const SCRIPT_DOC = /모든\s*스크립트.*\.docx$/i
+const MOCK_DOC = /모의고사.*\.docx$/i
 /** 교재는 스크립트가 아니라 수업용 책이므로 제외한다 */
 const TEXTBOOK_DOC = /교재/i
 /** 워드 잠금 파일(~$...), 임시 파일, writeback 백업 등 */
@@ -51,6 +52,7 @@ function collectFromZip(zip: SourceFile): SourceFile[] {
       name: basename(name),
       day: zip.day,
       date: zip.date,
+      mtime: zip.mtime,
       data,
       sha256: sha256(data),
     })
@@ -66,13 +68,15 @@ function walk(dir: string, day: number, date: string, out: SourceFile[]): void {
       continue
     }
     if (JUNK_FILE.test(entry.name)) continue
-    if (statSync(full).size === 0) continue
+    const stat = statSync(full)
+    if (stat.size === 0) continue
     const data = readFileSync(full)
     const file: SourceFile = {
       path: full,
       name: entry.name,
       day,
       date,
+      mtime: stat.mtimeMs,
       data,
       sha256: sha256(data),
     }
@@ -87,6 +91,8 @@ function walk(dir: string, day: number, date: string, out: SourceFile[]): void {
 export interface ScanResult {
   /** 가장 최근 수업의 마스터 스크립트 워드 파일 */
   scriptDoc: SourceFile
+  /** 모의고사 문제집 (있으면) */
+  mockDoc: SourceFile | null
   /** 오디오 후보. 카테고리 매칭은 파싱 결과를 알아야 하므로 여기서 하지 않는다 */
   audioFiles: { file: SourceFile; base: string; no: number }[]
   /** 진단용 */
@@ -140,8 +146,9 @@ export function scanMaterials(root: string): ScanResult {
 
   const docs = unique
     .filter((f) => SCRIPT_DOC.test(f.name) && !TEXTBOOK_DOC.test(f.name))
-    // 누적 갱신 파일이므로 가장 최근 수업 것 → 그중 내용이 가장 많은 것
-    .sort((a, b) => b.day - a.day || b.data.length - a.data.length)
+    // 누적 갱신 파일이므로 수정 시각이 가장 최근인 것을 원본으로 삼는다.
+    // (사용자가 종합 폴더든 DAY 폴더든 어디에 넣어도 최신본을 찾는다)
+    .sort((a, b) => b.mtime - a.mtime || b.day - a.day)
 
   if (docs.length === 0) {
     const candidates = unique.filter((f) => /\.docx$/i.test(f.name)).map((f) => f.name)
@@ -158,8 +165,13 @@ export function scanMaterials(root: string): ScanResult {
     })
     .filter((x): x is { file: SourceFile; base: string; no: number } => x !== null)
 
+  const mockDocs = unique
+    .filter((f) => MOCK_DOC.test(f.name) && !TEXTBOOK_DOC.test(f.name))
+    .sort((a, b) => b.mtime - a.mtime)
+
   return {
     scriptDoc: docs[0],
+    mockDoc: mockDocs[0] ?? null,
     audioFiles,
     stats: { scanned: all.length, unique: unique.length, days: [...new Set(days)].sort((a, b) => a - b) },
   }

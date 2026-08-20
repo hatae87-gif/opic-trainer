@@ -280,6 +280,15 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 }
 .chip-count { color: var(--amber); font-size: 0.78rem; font-weight: 600; }
 
+/* 모의고사 */
+.exam-pick { margin-top: 10px; }
+.exam-q { gap: 10px; }
+.exam-rec { color: #e74c3c; font-weight: 600; font-variant-numeric: tabular-nums; }
+.exam-text { text-align: left; line-height: 1.6; margin: 4px 0 0; }
+.exam-review { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.exam-review .en { margin: 0 0 4px; }
+.exam-ans { margin: 0; font-variant-numeric: tabular-nums; }
+
 /* 홈: 정리표 스타일 카테고리 카드 + 변형 칩 */
 .cat-grid {
   display: grid;
