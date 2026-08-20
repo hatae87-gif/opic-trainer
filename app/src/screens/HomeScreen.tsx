@@ -34,6 +34,7 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
       const s: ImportSummary = await importPack(file)
       setMessage(
         `가져오기 완료 — 스크립트 ${s.scripts}개, 문장 ${s.sentences}개 (구간 ${s.withTiming}개), 오디오 ${s.withAudio}개` +
+          (s.mockQuestions > 0 ? `, 모의고사 ${s.mockQuestions}문항` : ', 모의고사 없음') +
           (s.carriedOver ? `, 학습기록 유지 ${s.carriedOver}문장` : '') +
           (s.withTiming === 0 ? ' · 구간 정보가 없는 번들입니다 — PC에서 npm run prep을 다시 실행해 주세요' : ''),
       )

@@ -39,7 +39,11 @@ export function writeBundle(
   entries['manifest.json'] = new TextEncoder().encode(JSON.stringify(manifest, null, 1))
 
   mkdirSync(OUTPUT_DIR, { recursive: true })
-  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  // 시각까지 넣어 같은 날 여러 번 만들어도 파일명이 겹치지 않게 한다
+  // (카톡·폰 다운로드 폴더에서 옛 파일을 잘못 고르는 사고 방지)
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
   const outPath = join(OUTPUT_DIR, `opic-${stamp}.opicpack`)
   writeFileSync(outPath, zipSync(entries, { level: 6 }))
   return outPath

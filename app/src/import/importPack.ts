@@ -25,6 +25,8 @@ export interface ImportSummary {
   withTiming: number
   /** 기존 학습 기록이 이어지는 문장 수 */
   carriedOver: number
+  /** 이 번들에 든 모의고사 문항 수. 0이면 모의고사 없는 번들 */
+  mockQuestions: number
 }
 
 export async function importPack(file: File): Promise<ImportSummary> {
@@ -82,5 +84,19 @@ export async function importPack(file: File): Promise<ImportSummary> {
   }
   await tx.done
 
-  return { student: manifest.student, scripts: manifest.scripts.length, sentences, withAudio, withTiming, carriedOver }
+  const mockQuestions =
+    manifest.mockExam?.reduce(
+      (n, s) => n + s.tests.reduce((m, t) => m + t.questions.length, 0),
+      0,
+    ) ?? 0
+
+  return {
+    student: manifest.student,
+    scripts: manifest.scripts.length,
+    sentences,
+    withAudio,
+    withTiming,
+    carriedOver,
+    mockQuestions,
+  }
 }
