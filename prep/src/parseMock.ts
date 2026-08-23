@@ -23,6 +23,10 @@ function hangulRatio(s: string): number {
 function isQuestion(line: string): boolean {
   if (hangulRatio(line) > 0.05) return false
   if (/\.\.|…|\+\+|\s\+\s|\s\+$/.test(line)) return false
+  // 답안 메모는 "Parking spot, how long it would take/how many…" 처럼
+  // 대안 표기 슬래시가 있거나 문장부호 없이 끝난다. 문항은 온전한 문장이다
+  if (line.includes('/')) return false
+  if (!/[.?!]["”’']?$/.test(line)) return false
   // 상황극 문항은 물음표가 없기도 하고, 인트로 문항("Tell me something about
   // yourself.")은 8단어가 안 되기도 한다
   return (

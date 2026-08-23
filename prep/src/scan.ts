@@ -8,6 +8,8 @@ const DAY_DIR = /^DAY(\d+)\((\d{6})\)$/i
 /** DAY 폴더보다 항상 우선하는 정리본 폴더. 사용자가 직접 다듬은 자료가 들어간다 */
 const CURATED_DAY = 999
 const AUDIO_EXT = /\.(m4a|mp3|wav|mp4|aac)$/i
+/** 모의고사 문항 음성: `Test1_3.mp3` / `심화 Test2_15.mp3` */
+const MOCK_AUDIO = /^(기본|심화)?\s*Test\s*(\d+)_(\d+)\.(mp3|m4a|wav)$/i
 const SCRIPT_DOC = /모든\s*스크립트.*\.docx$/i
 const MOCK_DOC = /모의고사.*\.docx$/i
 /** 교재는 스크립트가 아니라 수업용 책이므로 제외한다 */
@@ -88,6 +90,15 @@ function walk(dir: string, day: number, date: string, out: SourceFile[]): void {
   }
 }
 
+export interface MockAudioRef {
+  /** 기본 / 심화 */
+  section: string
+  test: number
+  /** 문항 번호 (1부터) */
+  q: number
+  file: SourceFile
+}
+
 export interface ScanResult {
   /** 가장 최근 수업의 마스터 스크립트 워드 파일 */
   scriptDoc: SourceFile
@@ -95,6 +106,8 @@ export interface ScanResult {
   mockDoc: SourceFile | null
   /** 오디오 후보. 카테고리 매칭은 파싱 결과를 알아야 하므로 여기서 하지 않는다 */
   audioFiles: { file: SourceFile; base: string; no: number }[]
+  /** 모의고사 문항 음성 */
+  mockAudio: MockAudioRef[]
   /** 진단용 */
   stats: { scanned: number; unique: number; days: number[] }
 }
@@ -135,12 +148,15 @@ export function scanMaterials(root: string): ScanResult {
     throw new Error(`수업 폴더를 찾지 못했습니다: ${root}`)
   }
 
-  // 같은 파일이 폴더와 zip 양쪽에 중복 존재한다. 내용 해시로 하나만 남기되
+  // 같은 파일이 폴더와 zip 양쪽에 중복 존재한다. 내용+이름으로 하나만 남기되
   // 가장 나중 수업에서 나온 것을 남겨 날짜 정보가 최신이 되게 한다.
+  // (이름을 키에 넣는 이유: 모의고사 음성은 같은 내용이 다른 문항 번호로
+  // 재사용되기도 해서, 내용만으로 합치면 문항 하나가 사라진다)
   const byHash = new Map<string, SourceFile>()
   for (const f of all) {
-    const prev = byHash.get(f.sha256)
-    if (!prev || f.day > prev.day) byHash.set(f.sha256, f)
+    const key = `${f.sha256}|${f.name}`
+    const prev = byHash.get(key)
+    if (!prev || f.day > prev.day) byHash.set(key, f)
   }
   const unique = [...byHash.values()]
 
@@ -157,8 +173,21 @@ export function scanMaterials(root: string): ScanResult {
     )
   }
 
-  const audioFiles = unique
-    .filter((f) => AUDIO_EXT.test(f.name))
+  const mockAudio: MockAudioRef[] = []
+  const scriptAudio: SourceFile[] = []
+  for (const f of unique) {
+    if (!AUDIO_EXT.test(f.name)) continue
+    const m = f.name.match(MOCK_AUDIO)
+    if (m) {
+      // 기본 세트 zip은 파일명에 접두사가 없다. 이름 → 경로 순으로 섹션을 알아낸다
+      const section = m[1] ?? (f.path.includes('심화') ? '심화' : '기본')
+      mockAudio.push({ section, test: Number(m[2]), q: Number(m[3]), file: f })
+    } else {
+      scriptAudio.push(f)
+    }
+  }
+
+  const audioFiles = scriptAudio
     .map((f) => {
       const parsed = parseAudioName(f.name)
       return parsed ? { file: f, ...parsed } : null
@@ -173,6 +202,7 @@ export function scanMaterials(root: string): ScanResult {
     scriptDoc: docs[0],
     mockDoc: mockDocs[0] ?? null,
     audioFiles,
+    mockAudio,
     stats: { scanned: all.length, unique: unique.length, days: [...new Set(days)].sort((a, b) => a - b) },
   }
 }

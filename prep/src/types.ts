@@ -93,6 +93,8 @@ export interface BuiltScript extends ParsedScript {
 export interface MockTest {
   no: number
   questions: string[]
+  /** 문항별 음성의 번들 내 경로. 음성이 없는 문항은 null (앱이 TTS로 대체) */
+  audio?: (string | null)[]
 }
 
 export interface MockSection {

@@ -81,6 +81,21 @@ export async function importPack(file: File): Promise<ImportSummary> {
     .put({ key: 'lastImport', value: `${manifest.createdAt}|${manifest.student}` })
   if (manifest.mockExam) {
     await tx.objectStore('meta').put({ key: 'mockExam', value: JSON.stringify(manifest.mockExam) })
+    // 문항 음성도 오디오 저장소에 넣는다 (키 = 번들 내 경로)
+    for (const section of manifest.mockExam) {
+      for (const test of section.tests) {
+        for (const path of test.audio ?? []) {
+          if (!path) continue
+          const data = entries[path]
+          if (data) {
+            await tx.objectStore('audio').put({
+              scriptId: path,
+              blob: new Blob([data], { type: 'audio/mpeg' }),
+            })
+          }
+        }
+      }
+    }
   }
   await tx.done
 

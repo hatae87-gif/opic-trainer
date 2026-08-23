@@ -30,6 +30,8 @@ export interface ManifestScript {
 export interface MockTest {
   no: number
   questions: string[]
+  /** 문항별 음성의 번들 내 경로. 없으면 TTS로 출제 */
+  audio?: (string | null)[]
 }
 
 export interface MockSection {

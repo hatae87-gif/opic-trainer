@@ -46,8 +46,55 @@ export function ExamScreen() {
     return () => clearInterval(t)
   }, [phase, startedAt])
 
-  const questions = section?.tests.find((t) => t.no === testNo)?.questions ?? []
+  const currentTest = section?.tests.find((t) => t.no === testNo)
+  const questions = currentTest?.questions ?? []
+  const questionAudio = currentTest?.audio ?? []
   const recKey = (i: number) => `exam-${section?.name}-t${testNo}-q${i}`
+
+  const qAudioRef = useRef<HTMLAudioElement | null>(null)
+  const qUrlRef = useRef<string | null>(null)
+  const stopQuestionAudio = () => {
+    qAudioRef.current?.pause()
+    qAudioRef.current = null
+    if (qUrlRef.current) {
+      URL.revokeObjectURL(qUrlRef.current)
+      qUrlRef.current = null
+    }
+    setSpeaking(false)
+  }
+
+  /** 문항 출제: 실제 시험 음성이 있으면 그것을, 없으면 TTS를 쓴다 */
+  const presentQuestion = async (
+    text: string,
+    audioPath: string | null | undefined,
+    onEnd?: () => void,
+  ) => {
+    stopQuestionAudio()
+    if (canSpeak) speechSynthesis.cancel()
+    if (audioPath) {
+      const db = await getDB()
+      const rec = await db.get('audio', audioPath)
+      if (rec) {
+        const url = URL.createObjectURL(rec.blob)
+        const audio = new Audio(url)
+        qAudioRef.current = audio
+        qUrlRef.current = url
+        audio.onended = () => {
+          setSpeaking(false)
+          onEnd?.()
+        }
+        audio.onerror = () => {
+          setSpeaking(false)
+          setShowText(true)
+          onEnd?.()
+        }
+        setSpeaking(true)
+        void audio.play()
+        return
+      }
+    }
+    speakQuestion(text, onEnd)
+  }
 
   const speakQuestion = (text: string, onEnd?: () => void) => {
     if (!canSpeak) {
@@ -77,7 +124,7 @@ export function ExamScreen() {
     setReplaysLeft(1)
     setShowText(false)
     // 실전처럼: 질문이 끝나는 즉시 답변 녹음이 시작된다
-    speakQuestion(questions[i], () => void recorder.start(recKey(i)))
+    void presentQuestion(questions[i], questionAudio[i], () => void recorder.start(recKey(i)))
   }
 
   const startTest = (sec: MockSection, no: number) => {
@@ -88,11 +135,12 @@ export function ExamScreen() {
     setTotalSec(0)
     setPhase('exam')
     // section/testNo state가 아직 안 잡혔으므로 직접 질문을 넘긴다
-    const qs = sec.tests.find((t) => t.no === no)?.questions ?? []
+    const test = sec.tests.find((t) => t.no === no)
+    const qs = test?.questions ?? []
     setQIndex(0)
     setReplaysLeft(1)
     setShowText(false)
-    speakQuestion(qs[0], () => {
+    void presentQuestion(qs[0], test?.audio?.[0], () => {
       void recorder.start(`exam-${sec.name}-t${no}-q0`)
     })
   }
@@ -100,11 +148,12 @@ export function ExamScreen() {
   const replay = () => {
     if (replaysLeft <= 0 || !questions[qIndex]) return
     setReplaysLeft((r) => r - 1)
-    speakQuestion(questions[qIndex])
+    void presentQuestion(questions[qIndex], questionAudio[qIndex])
   }
 
   const finishExam = async () => {
     if (recorder.state.recording) recorder.stop()
+    stopQuestionAudio()
     if (canSpeak) speechSynthesis.cancel()
     // 녹음 저장(비동기)이 끝난 뒤 길이를 모은다
     setTimeout(() => {
@@ -132,6 +181,7 @@ export function ExamScreen() {
 
   const quit = () => {
     if (recorder.state.recording) recorder.stop()
+    stopQuestionAudio()
     if (canSpeak) speechSynthesis.cancel()
     myVoice.stop()
     setPhase('pick')

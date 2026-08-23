@@ -231,24 +231,40 @@ async function main() {
 
   // ---- 모의고사 ----
   let mockExam = undefined
+  let mockAudioByKey: Map<string, SourceFile> | undefined
   if (scan.mockDoc) {
     mockExam = await parseMockDoc(scan.mockDoc.data)
     const total = mockExam.reduce(
       (n, s) => n + s.tests.reduce((m, t) => m + t.questions.length, 0),
       0,
     )
-    console.log(
-      `모의고사: ${mockExam.map((s) => `${s.name} ${s.tests.length}세트`).join(' · ')} · 총 ${total}문항`,
+    mockAudioByKey = new Map(
+      scan.mockAudio.map((a) => [`${a.section}|${a.test}|${a.q}`, a.file]),
     )
+    const audioBytes = [...new Set(scan.mockAudio.map((a) => a.file.sha256))].length
+    console.log(
+      `모의고사: ${mockExam.map((s) => `${s.name} ${s.tests.length}세트`).join(' · ')} · 총 ${total}문항` +
+        (scan.mockAudio.length ? ` · 문항 음성 ${scan.mockAudio.length}개` : ' · 문항 음성 없음(TTS 출제)'),
+    )
+    void audioBytes
     for (const s of mockExam) {
       const odd = s.tests.filter((t) => t.questions.length !== 15)
       for (const t of odd) {
         console.warn(`  ! ${s.name} Test ${t.no}: 문항이 ${t.questions.length}개입니다 (기대값 15)`)
       }
+      // 음성과 문항 수가 안 맞으면 짝이 어긋난 것이므로 알려준다
+      for (const t of s.tests) {
+        const haveAudio = scan.mockAudio.filter((a) => a.section === s.name && a.test === t.no).length
+        if (haveAudio > 0 && haveAudio !== t.questions.length) {
+          console.warn(
+            `  ! ${s.name} Test ${t.no}: 문항 ${t.questions.length}개인데 음성이 ${haveAudio}개입니다`,
+          )
+        }
+      }
     }
   }
 
-  const out = writeBundle(doc.student, scripts, audioByScript, mockExam)
+  const out = writeBundle(doc.student, scripts, audioByScript, mockExam, mockAudioByKey)
   console.log(`\n✅ 번들 생성: ${out}`)
   console.log('이 파일을 카톡 "나에게 보내기" 등으로 폰에 전송한 뒤, 앱에서 가져오기 하세요.')
 }

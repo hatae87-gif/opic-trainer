@@ -15,6 +15,8 @@ export function writeBundle(
   scripts: BuiltScript[],
   audioByScript: Map<string, SourceFile>,
   mockExam?: MockSection[],
+  /** "섹션|테스트|문항번호" → 문항 음성 파일 */
+  mockAudioByKey?: Map<string, SourceFile>,
 ): string {
   const entries: Record<string, Uint8Array> = {}
   for (const s of scripts) {
@@ -26,6 +28,21 @@ export function writeBundle(
     const safeName = `audio/${file.sha256.slice(0, 16)}.m4a`
     s.audio = safeName
     entries[safeName] = file.data
+  }
+
+  // 모의고사 문항 음성. manifest의 audio 경로가 zip 엔트리를 가리키게 한다
+  if (mockExam && mockAudioByKey) {
+    for (const section of mockExam) {
+      for (const test of section.tests) {
+        test.audio = test.questions.map((_, i) => {
+          const file = mockAudioByKey.get(`${section.name}|${test.no}|${i + 1}`)
+          if (!file) return null
+          const entryName = `mock/${file.sha256.slice(0, 16)}.mp3`
+          entries[entryName] = file.data
+          return entryName
+        })
+      }
+    }
   }
 
   // manifest는 audio 필드가 zip 엔트리 이름으로 바뀐 뒤에 직렬화해야 한다
