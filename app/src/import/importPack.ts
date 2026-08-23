@@ -90,7 +90,7 @@ export async function importPack(file: File): Promise<ImportSummary> {
           if (data) {
             await tx.objectStore('audio').put({
               scriptId: path,
-              blob: new Blob([data], { type: 'audio/mpeg' }),
+              blob: new Blob([data.slice()], { type: 'audio/mpeg' }),
             })
           }
         }
