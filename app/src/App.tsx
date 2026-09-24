@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { requestPersistence } from './db/db'
+import { ConnectScreen } from './screens/ConnectScreen'
 import { ExamScreen } from './screens/ExamScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { ReviewScreen } from './screens/ReviewScreen'
@@ -14,6 +15,7 @@ type Route =
   | { name: 'review' }
   | { name: 'speaking' }
   | { name: 'exam' }
+  | { name: 'connect' }
   | { name: 'stats' }
 
 const TABS: { tab: Tab; icon: string; label: string }[] = [
@@ -58,7 +60,14 @@ export function App() {
       case 'speaking':
         return <SpeakingScreen />
       case 'exam':
-        return <ExamScreen />
+        return <ExamScreen onOpenConnect={() => setRoute({ name: 'connect' })} />
+      case 'connect':
+        return (
+          <ConnectScreen
+            onBack={goHome}
+            onOpenScript={(id) => setRoute({ name: 'script', id })}
+          />
+        )
       case 'stats':
         return <StatsScreen />
       default:

@@ -321,6 +321,54 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .exam-review .en { margin: 0 0 4px; }
 .exam-ans { margin: 0; font-variant-numeric: tabular-nums; }
 
+/* 스크립트 연결 연습 */
+.connect-q {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.connect-q-head { display: flex; align-items: center; gap: 8px; }
+.type-badge {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.connect-plan { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.plan-step {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.plan-free { border-style: dashed; }
+.plan-role { font-size: 0.72rem; color: var(--amber); font-weight: 700; }
+.plan-phrase { margin: 4px 0 0; font-size: 0.95rem; }
+.plan-hint { margin: 3px 0 0; font-size: 0.78rem; }
+.plan-bridge { margin: 0 0 6px; color: var(--accent); font-size: 0.85rem; }
+.plan-script { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.plan-name {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.plan-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+.plan-preview { margin-top: 8px; border-top: 1px solid var(--surface2); padding-top: 8px; }
+.plan-preview .en { margin: 0 0 6px; font-size: 0.85rem; line-height: 1.5; }
+
 /* 홈: 정리표 스타일 카테고리 카드 + 변형 칩 */
 .cat-grid {
   display: grid;

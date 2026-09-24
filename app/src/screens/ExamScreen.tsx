@@ -32,7 +32,7 @@ interface Run {
  * 모의고사: 전체 세트 응시(실전처럼 음성 출제·자동 녹음), 문제 눈으로 보기,
  * 그리고 콤보 묶음 단위 랜덤 연습.
  */
-export function ExamScreen() {
+export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
   const [mock, setMock] = useState<MockSection[] | null>(null)
   const [phase, setPhase] = useState<Phase>('pick')
   const [run, setRun] = useState<Run | null>(null)
@@ -328,6 +328,12 @@ export function ExamScreen() {
         <button className="speak-banner" onClick={startRandom}>
           🎲 랜덤 묶음 연습 — 아무 세트에서나 콤보(2~4·5~7·8~10·11~13·14~15) 하나 뽑기
         </button>
+
+        {onOpenConnect && (
+          <button className="speak-banner" onClick={onOpenConnect}>
+            🔗 스크립트 연결 연습 — 질문 듣고 외운 스크립트를 어떻게 이을지 시뮬레이션
+          </button>
+        )}
 
         <p className="dim exam-guide">
           세트를 누르면 실전처럼 15문항 전체를 응시합니다. 👁 는 문제를 눈으로 봅니다.
