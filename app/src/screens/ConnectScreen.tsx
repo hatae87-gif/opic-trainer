@@ -22,14 +22,75 @@ const TYPE_LABEL: Record<QType, string> = {
   roleplay: '상황극',
 }
 
-/** 도입부(외우지 않는 부분) 시작 멘트 예시 */
-const INTROS = [
-  'Oh, (주제)? Wow, that’s a good question…',
-  'Hmm, let me think… well, you know what,',
-  'Oh yeah, (주제)! Actually I have a lot to say about this…',
-  'Well… honestly, I wasn’t expecting that question, but okay…',
-  'Ah, (주제)… sure, let me tell you about it.',
+/**
+ * 도입부(외우지 않는 부분)는 세 문장을 조합해 만든다:
+ * ① 질문 유형에 맞는 리액션 → ② 이어주는 문장 → ③ 첫 연결 스크립트로 넘어가는 예고.
+ * 그래야 도입이 질문과 어울리고, 뒤의 스크립트 연결도 자연스럽다.
+ */
+const REACTIONS: Record<QType, string[]> = {
+  description: [
+    'Oh, (주제)? Wow, that’s a good question…',
+    'Ah yeah, (주제)! Actually I have a lot to say about this.',
+    'Hmm, (주제)… okay, sure, let me tell you about it.',
+  ],
+  experience: [
+    'Oh wow, that really takes me back…',
+    'Hmm, let me think… when was that…',
+    'Oh yeah! Actually, something does come to mind.',
+  ],
+  comparison: [
+    'Oh, that’s an interesting question, actually…',
+    'Hmm, comparing now and then… let me see.',
+    'Wow, yeah… things have really changed a lot.',
+  ],
+  person: [
+    'Oh, there’s definitely one person that comes to mind…',
+    'Hmm, a person… okay, yeah, I know exactly who to talk about.',
+  ],
+  roleplay: ['Hi, hello?'],
+}
+
+const FILLERS = [
+  'Honestly, I wasn’t expecting this question, but it’s actually something I really enjoy talking about.',
+  'You know, this is something pretty close to my everyday life.',
+  'Actually, I could talk about this for hours, but let me keep it simple.',
+  'It’s funny you ask, because I was just thinking about this the other day.',
 ]
+
+/** 첫 연결 스크립트의 카테고리로 자연스럽게 넘어가는 예고 문장 */
+const LEADINS: Record<string, string[]> = {
+  who: [
+    'And I guess the first thing I should tell you is who I usually enjoy it with.',
+    'So, let me start with the people I do it with.',
+  ],
+  'when how often': [
+    'Let me start with when I usually get to enjoy it.',
+    'First of all, about how often I do it…',
+  ],
+  why: [
+    'And there’s a clear reason why I love it so much.',
+    'Let me tell you why I’m so into it first.',
+  ],
+  where: [
+    'And there’s a specific place that comes to mind.',
+    'So first, let me tell you about where I usually go.',
+  ],
+  'what kind': [
+    'And when it comes to what kind, well, let me explain.',
+    'First, let me tell you about my taste.',
+  ],
+  장소묘사: [
+    'Let me describe the place for you first.',
+    'So, picture this place with me…',
+  ],
+  최근경험: ['Actually, the most recent time was not that long ago.'],
+  특별경험: ['There’s one time I will never forget, actually.'],
+  과거비교: ['Now that I think about it, it used to be so different back then.'],
+  계기변화: ['It all started a while ago, actually.'],
+  인물묘사: ['Let me tell you about them.'],
+  시간순묘사: ['Let me walk you through it from the beginning.'],
+}
+const LEADIN_DEFAULT = ['So… let me just walk you through it.']
 
 /** 스크립트 사이 전환 멘트 예시 */
 const BRIDGES = [
@@ -206,7 +267,14 @@ export function ConnectScreen({ onBack, onOpenScript }: Props) {
       note = '이 유형에 연결할 스크립트가 아직 없습니다. 도입과 마무리 위주로 연습하세요.'
     }
 
-    return { type, intro: pick(INTROS), items, outro: pick(OUTROS), note }
+    // 도입 = 리액션 + 이어주는 문장 + 첫 스크립트 예고 (2~3문장)
+    const parts = [pick(REACTIONS[type])]
+    if (type !== 'roleplay') parts.push(pick(FILLERS))
+    const firstCat = items[0]?.script.categoryKey
+    if (firstCat) parts.push(pick(LEADINS[firstCat] ?? LEADIN_DEFAULT))
+    const intro = parts.join(' ')
+
+    return { type, intro, items, outro: pick(OUTROS), note }
   }
 
   const playBlobKeyed = async (key: string, getBlob: () => Promise<Blob | null>) => {
@@ -321,7 +389,9 @@ export function ConnectScreen({ onBack, onOpenScript }: Props) {
           <div className="plan-step plan-free">
             <span className="plan-role">도입 (즉흥)</span>
             <p className="plan-phrase">“{plan.intro}”</p>
-            <p className="dim plan-hint">질문을 받아치는 리액션 — 외우지 말고 매번 다르게</p>
+            <p className="dim plan-hint">
+              리액션 → 이어주기 → 첫 스크립트 예고 순서 — 그대로 읽지 말고 느낌만 살려 매번 다르게
+            </p>
           </div>
 
           {plan.items.map((item, i) => (
