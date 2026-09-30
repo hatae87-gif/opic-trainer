@@ -175,10 +175,19 @@ export async function parseScriptDoc(buffer: Buffer): Promise<ParsedDoc> {
   for (const line of lines.slice(1)) {
     if (CAPTION.test(line)) continue
 
+    // 문서 끝의 Background Survey 블록은 시험 안내 자료다. 여기서 파싱을 끝낸다
+    if (/^background\s*survey$/i.test(line)) {
+      flushScript()
+      break
+    }
+
     if (VOCAB_START.test(line)) {
       vocabMode = true
       continue
     }
+
+    // 문자가 전혀 없는 줄(이모티콘 ☺, 구분선 등)은 내용이 아니다
+    if (!/\p{L}/u.test(line)) continue
 
     const isBody = line.length >= BODY_MIN_LEN
     /** 제목이 될 수 있을 만큼 짧은 줄. 그 사이 길이(tip의 짧은 한국어 문장 등)는 본문 */
@@ -199,6 +208,29 @@ export async function parseScriptDoc(buffer: Buffer): Promise<ParsedDoc> {
 
     if (knownCategory) {
       openCategory(line)
+      continue
+    }
+
+    // 상황극 섹션은 [도입 → 골라 쓰는 질문들 → 마무리]가 한 덩어리다.
+    // 짧은 한국어 프롬프트 줄("- 얼마 내야해?")이 많아 변형 제목으로 오인되므로,
+    // 카테고리 전체를 스크립트 하나로 모은다.
+    if (current?.title.startsWith('상황극')) {
+      if (!script) {
+        script = {
+          no: current.scripts.length + 1,
+          labelEn: '',
+          labelKo: current.title,
+          ko: '',
+          en: '',
+          vocabHints: [],
+        }
+      }
+      // "질문에 따라 1-2가지 골라주시기" 같은 안내문은 본문이 아니라 힌트로 남긴다
+      if (/골라주|고르세요|선택/.test(line) && line.length <= LABEL_MAX_LEN * 2) {
+        script.vocabHints.push(asLabel(line))
+      } else {
+        bodies.push(line)
+      }
       continue
     }
 
