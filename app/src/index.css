@@ -331,6 +331,9 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
   color: var(--text);
 }
 .study-answer p:last-child { margin-bottom: 0; }
+.study-actions { margin-top: 8px; }
+.study-answer .edit-actions { margin-top: 10px; }
+.study-answer .edit-area { margin-top: 2px; }
 .exam-q { gap: 10px; }
 .exam-rec { color: #e74c3c; font-weight: 600; font-variant-numeric: tabular-nums; }
 .exam-text { text-align: left; line-height: 1.6; margin: 4px 0 0; }

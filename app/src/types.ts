@@ -90,6 +90,13 @@ export interface SentenceEdit {
   updatedAt: number
 }
 
+/** 모의고사 답변의 사용자 수정본. key = "섹션-t테스트-q문항". 재임포트에도 유지 */
+export interface MockAnswerEdit {
+  key: string
+  text: string
+  updatedAt: number
+}
+
 /** 스크립트별 연습 횟수. 전체 재생 완주 또는 스피킹 연습 완료 시 +1 */
 export interface PracticeEntry {
   scriptId: string

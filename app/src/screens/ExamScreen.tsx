@@ -49,6 +49,12 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
   const [browsing, setBrowsing] = useState<{ secName: string; testNo: number } | null>(null)
   /** 문제 보기에서 마지막으로 재생 누른 문항 */
   const [browsePlaying, setBrowsePlaying] = useState<number | null>(null)
+  /** 스터디: 사용자 답변 수정본 (key = 섹션-t테스트-q문항) */
+  const [answerEdits, setAnswerEdits] = useState<Map<string, string>>(new Map())
+  /** 스터디: 펼쳐진 답변 문항 키들 */
+  const [openAnswers, setOpenAnswers] = useState<Set<string>>(new Set())
+  /** 스터디: 지금 수정 중인 답변 키와 입력값 */
+  const [editingAnswer, setEditingAnswer] = useState<{ key: string; text: string } | null>(null)
   const lastRandomRef = useRef<string | null>(null)
   const recorder = useRecorder()
   const myVoice = useMyVoice()
@@ -58,6 +64,8 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
       const db = await getDB()
       const raw = await db.get('meta', 'mockExam')
       setMock(raw ? (JSON.parse(raw.value) as MockSection[]) : null)
+      const edits = await db.getAll('mockEdits')
+      setAnswerEdits(new Map(edits.map((e) => [e.key, e.text])))
     })()
     return () => {
       stopQuestionAudio()
@@ -274,6 +282,46 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
     )
   }
 
+  // ---- 스터디 답변 보기/수정 ----
+
+  const answerKey = (i: number) =>
+    browsing ? `${browsing.secName}-t${browsing.testNo}-q${i}` : ''
+
+  const toggleAnswer = (key: string) => {
+    setOpenAnswers((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const saveAnswerEdit = async () => {
+    if (!editingAnswer) return
+    const db = await getDB()
+    const text = editingAnswer.text.trim()
+    const next = new Map(answerEdits)
+    if (text) {
+      await db.put('mockEdits', { key: editingAnswer.key, text, updatedAt: Date.now() })
+      next.set(editingAnswer.key, text)
+    } else {
+      await db.delete('mockEdits', editingAnswer.key)
+      next.delete(editingAnswer.key)
+    }
+    setAnswerEdits(next)
+    setEditingAnswer(null)
+  }
+
+  const restoreAnswer = async () => {
+    if (!editingAnswer) return
+    const db = await getDB()
+    await db.delete('mockEdits', editingAnswer.key)
+    const next = new Map(answerEdits)
+    next.delete(editingAnswer.key)
+    setAnswerEdits(next)
+    setEditingAnswer(null)
+  }
+
   if (phase === 'browse' && browsing) {
     const test = findTest(browsing.secName, browsing.testNo)
     return (
@@ -292,7 +340,12 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
             <section key={g[0]} className="browse-group">
               <h2>{groupLabel(g)}</h2>
               {indices.map((i) => {
-                const answer = test?.answers?.[i] ?? []
+                const key = answerKey(i)
+                const docAnswer = (test?.answers?.[i] ?? []).join('\n')
+                const edited = answerEdits.get(key)
+                const answer = edited ?? docAnswer
+                const open = openAnswers.has(key)
+                const editing = editingAnswer?.key === key
                 return (
                   <div key={i} className="sentence browse-q-block">
                     <div className="browse-q">
@@ -315,11 +368,55 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
                         <strong>Q{i + 1}.</strong> {test?.questions[i]}
                       </p>
                     </div>
-                    {answer.length > 0 && (
+
+                    <div className="study-actions">
+                      <button className="chip" onClick={() => toggleAnswer(key)}>
+                        {open ? '답변 접기' : answer ? `답변 보기${edited ? ' (수정됨)' : ''}` : '답변 쓰기'}
+                      </button>
+                    </div>
+
+                    {open && !editing && (
                       <div className="study-answer">
-                        {answer.map((line, k) => (
-                          <p key={k}>{line}</p>
-                        ))}
+                        {answer ? (
+                          answer.split('\n').map((line, k) => <p key={k}>{line}</p>)
+                        ) : (
+                          <p className="dim">아직 답변이 없습니다. 직접 써보세요.</p>
+                        )}
+                        <div className="edit-actions">
+                          <button
+                            className="btn-outline"
+                            onClick={() => setEditingAnswer({ key, text: answer })}
+                          >
+                            ✏️ 수정
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {open && editing && (
+                      <div className="study-answer">
+                        <textarea
+                          className="edit-area"
+                          rows={6}
+                          value={editingAnswer.text}
+                          onChange={(e) =>
+                            setEditingAnswer((p) => p && { ...p, text: e.target.value })
+                          }
+                        />
+                        <div className="edit-actions">
+                          <button className="btn" onClick={() => void saveAnswerEdit()}>저장</button>
+                          <button className="btn-outline" onClick={() => setEditingAnswer(null)}>
+                            취소
+                          </button>
+                          {edited !== undefined && docAnswer && (
+                            <button className="btn-outline restore" onClick={() => void restoreAnswer()}>
+                              원본 복원
+                            </button>
+                          )}
+                        </div>
+                        <p className="dim edit-hint">
+                          수정본은 이 기기에만 저장되며, 새 자료를 가져와도 유지됩니다.
+                        </p>
                       </div>
                     )}
                   </div>

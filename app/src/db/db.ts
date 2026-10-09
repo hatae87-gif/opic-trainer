@@ -1,5 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type {
+  MockAnswerEdit,
   PracticeDayEntry,
   PracticeEntry,
   RecordingEntry,
@@ -27,13 +28,15 @@ interface OpicDB extends DBSchema {
   practice: { key: string; value: PracticeEntry }
   /** 날짜별 연습 기록. 기록 화면의 원본 데이터 */
   practiceDays: { key: string; value: PracticeDayEntry; indexes: { byDay: string } }
+  /** 모의고사 답변 수정본. 임포트해도 지워지지 않는다 */
+  mockEdits: { key: string; value: MockAnswerEdit }
   meta: { key: string; value: { key: string; value: string } }
 }
 
 let dbPromise: Promise<IDBPDatabase<OpicDB>> | null = null
 
 export function getDB(): Promise<IDBPDatabase<OpicDB>> {
-  dbPromise ??= openDB<OpicDB>('opic-trainer', 4, {
+  dbPromise ??= openDB<OpicDB>('opic-trainer', 5, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('scripts', { keyPath: 'id' })
@@ -53,6 +56,9 @@ export function getDB(): Promise<IDBPDatabase<OpicDB>> {
       if (oldVersion < 4) {
         const days = db.createObjectStore('practiceDays', { keyPath: 'key' })
         days.createIndex('byDay', 'day')
+      }
+      if (oldVersion < 5) {
+        db.createObjectStore('mockEdits', { keyPath: 'key' })
       }
     },
   })
