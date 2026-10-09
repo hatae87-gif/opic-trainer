@@ -479,3 +479,117 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .grade-again { background: var(--red); }
 .grade-hard { background: var(--amber); }
 .grade-good { background: var(--green); }
+
+/* ── 연결 연습: 콤보 모드 ───────────────────────────────── */
+.mode-switch { display: flex; gap: 8px; margin: 4px 0 14px; }
+.mode-switch .chip { padding: 7px 14px; }
+
+.combo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.combo-hint { font-size: 0.82rem; margin: 8px 2px 4px; line-height: 1.5; }
+.combo-step {
+  border-top: 2px solid var(--surface2);
+  margin-top: 18px;
+  padding-top: 14px;
+}
+.combo-step:first-of-type { border-top: 0; margin-top: 8px; }
+
+.plan-bridge.reused { color: var(--amber); }
+.reuse-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.7rem;
+  color: var(--bg);
+  background: var(--amber);
+  border-radius: 999px;
+  padding: 1px 8px;
+  vertical-align: middle;
+}
+
+/* ── 말하기 지표 (3초+ 공백) ────────────────────────────── */
+.pause-live {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: var(--red);
+  font-weight: 600;
+}
+.pause-stat {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.pause-stat.tone-good { color: var(--green); }
+.pause-stat.tone-warn { color: var(--amber); }
+.pause-stat.tone-bad { color: var(--red); }
+
+/* ── 서론 영작 훈련 ─────────────────────────────────────── */
+.drill-open { width: 100%; margin-top: 6px; }
+.drill { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.drill-hint { font-size: 0.8rem; margin: 0; line-height: 1.5; }
+.drill-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--surface2);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 10px 12px;
+  resize: vertical;
+}
+.drill-input:focus { outline: none; border-color: var(--accent); }
+.drill-marked {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.drill-marked mark {
+  background: transparent;
+  color: inherit;
+  border-bottom: 2px solid var(--red);
+  padding-bottom: 1px;
+}
+.drill-clean { margin: 0; color: var(--green); font-size: 0.88rem; }
+.drill-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.drill-issues li { font-size: 0.85rem; line-height: 1.6; }
+.drill-issues code { font-size: 0.85rem; }
+.drill-issues strong { color: var(--green); }
+.iss-tag {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 8px;
+  background: var(--surface2);
+  color: var(--text);
+}
+.iss-tag.iss-article { background: #3a2b4d; color: #d9b8ff; }
+.iss-tag.iss-preposition { background: #16304d; color: #9ec9ff; }
+.iss-tag.iss-agreement { background: #4d3a16; color: #ffd79e; }
+.iss-tag.iss-verb { background: #16402e; color: #9bedc4; }
+.iss-tag.iss-countable { background: #4d1f2a; color: #ffb3c0; }
+
+.drill-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.drill-notes li { font-size: 0.82rem; }
+.drill-notes li.ok { color: var(--green); }
+.drill-notes li.ng { color: var(--amber); }
+
+.drill-model {
+  border: 1px dashed var(--surface2);
+  border-radius: 10px;
+  padding: 10px 12px;
+}

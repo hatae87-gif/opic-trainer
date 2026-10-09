@@ -3,7 +3,13 @@ import { getDB } from '../db/db'
 import { applyEdits } from '../db/edits'
 import { recordPractice } from '../db/practice'
 import { useMyVoice } from '../recorder/useMyVoice'
-import { fmtElapsed, latestRecordingEntry, useRecorder } from '../recorder/useRecorder'
+import { describeStats, statsTone } from '../recorder/silence'
+import {
+  fmtElapsed,
+  latestRecordingEntry,
+  LIVE_PAUSE_WARN_SEC,
+  useRecorder,
+} from '../recorder/useRecorder'
 import { substitute, TOPIC_PRESETS, type Topic } from '../topic'
 import type { StoredScript } from '../types'
 
@@ -164,6 +170,14 @@ export function SpeakingScreen() {
           </button>
         )}
       </div>
+      {recorder.state.recording === recKey && recorder.state.pausedFor >= LIVE_PAUSE_WARN_SEC && (
+        <p className="pause-live">⏸ {recorder.state.pausedFor}초째 멈춤 — 소리로 채우세요</p>
+      )}
+      {!recorder.state.recording && recorder.state.lastStats && (
+        <p className={`pause-stat tone-${statsTone(recorder.state.lastStats)}`}>
+          {describeStats(recorder.state.lastStats)}
+        </p>
+      )}
       {recorder.state.error && <p className="notice">{recorder.state.error}</p>}
 
       {!revealed ? (

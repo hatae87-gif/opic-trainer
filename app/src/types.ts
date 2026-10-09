@@ -77,6 +77,12 @@ export interface RecordingEntry {
   createdAt: number
   /** 녹음 길이(초). 예전 녹음에는 없을 수 있다 */
   duration?: number
+  /** 3초 이상 말이 끊긴 횟수. 측정 전 녹음에는 없다 */
+  pauses?: number
+  /** 가장 길었던 공백(초) */
+  longestPause?: number
+  /** 전체 길이 중 실제 발화 비율 0~1 */
+  speakingRatio?: number
 }
 
 /**
