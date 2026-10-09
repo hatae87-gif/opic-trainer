@@ -95,6 +95,8 @@ export interface MockTest {
   questions: string[]
   /** 문항별 음성의 번들 내 경로. 음성이 없는 문항은 null (앱이 TTS로 대체) */
   audio?: (string | null)[]
+  /** 문항별로 문서에 적혀 있는 답변·코칭 메모 (원문 그대로, 줄 단위) */
+  answers?: string[][]
 }
 
 export interface MockSection {

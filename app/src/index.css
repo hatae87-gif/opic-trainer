@@ -314,6 +314,23 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 }
 .browse-q .en { margin: 6px 0; line-height: 1.55; }
 .browse-q .btn-icon { flex-shrink: 0; margin-top: 2px; }
+.browse-q-block { display: flex; flex-direction: column; margin-bottom: 8px; }
+.browse-q-block .browse-q { margin-bottom: 0; }
+/* 문서에 적힌 답변·코칭 메모: 원문 그대로 */
+.study-answer {
+  margin-top: 8px;
+  border-left: 3px solid var(--amber);
+  background: var(--bg);
+  border-radius: 0 10px 10px 0;
+  padding: 8px 12px;
+}
+.study-answer p {
+  margin: 0 0 6px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.study-answer p:last-child { margin-bottom: 0; }
 .exam-q { gap: 10px; }
 .exam-rec { color: #e74c3c; font-weight: 600; font-variant-numeric: tabular-nums; }
 .exam-text { text-align: left; line-height: 1.6; margin: 4px 0 0; }

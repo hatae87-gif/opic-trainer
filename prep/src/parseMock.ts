@@ -39,7 +39,15 @@ function isQuestion(line: string): boolean {
 export async function parseMockDoc(buffer: Buffer): Promise<MockSection[]> {
   const { value: html } = await mammoth.convertToHtml({ buffer })
   const flattened = html
-    .replace(/<table[\s\S]*?<\/table>/gi, '')
+    // 짧은 표는 "Test 3" 같은 제목 배너다. 제목으로 승격하고 긴 표만 버린다
+    .replace(/<table[\s\S]*?<\/table>/gi, (tableHtml) => {
+      const text = tableHtml
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      return text && text.length <= 30 ? `<p>${text}</p>` : ''
+    })
     .replace(/<\/?(?:h[1-6]|li)\b[^>]*>/gi, (tag) => (tag.startsWith('</') ? '</p>' : '<p>'))
   const lines: string[] = []
   for (const m of flattened.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) {
@@ -81,13 +89,20 @@ export async function parseMockDoc(buffer: Buffer): Promise<MockSection[]> {
       const existing = section.tests.find((x) => x.no === no)
       if (existing) test = existing
       else {
-        test = { no, questions: [] }
+        test = { no, questions: [], answers: [] }
         section.tests.push(test)
       }
       continue
     }
 
-    if (test && isQuestion(line)) test.questions.push(line)
+    if (!test) continue
+    if (isQuestion(line)) {
+      test.questions.push(line)
+      test.answers!.push([])
+    } else if (test.questions.length > 0) {
+      // 문항이 아닌 줄 = 그 문항에 적힌 답변·코칭 메모. 원문 그대로 보관한다
+      test.answers![test.questions.length - 1].push(line)
+    }
   }
 
   return sections.filter((s) => s.tests.some((t) => t.questions.length > 0))

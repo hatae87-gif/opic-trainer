@@ -281,8 +281,8 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
         <header className="bar">
           <button className="btn-icon" onClick={quit} aria-label="뒤로">←</button>
           <div className="bar-title">
-            <strong>{browsing.secName} Test {browsing.testNo} 문제 보기</strong>
-            <span className="dim">▶ 로 문항 음성을 들을 수 있습니다</span>
+            <strong>{browsing.secName} Test {browsing.testNo} 스터디</strong>
+            <span className="dim">문항 음성(▶)과 문서에 적힌 답변을 함께 봅니다</span>
           </div>
         </header>
         {GROUPS.map((g) => {
@@ -291,28 +291,40 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
           return (
             <section key={g[0]} className="browse-group">
               <h2>{groupLabel(g)}</h2>
-              {indices.map((i) => (
-                <div key={i} className="sentence browse-q">
-                  <button
-                    className={`btn-icon ${browsePlaying === i && speaking ? 'on' : ''}`}
-                    aria-label="문항 듣기"
-                    onClick={() => {
-                      if (browsePlaying === i && speaking) {
-                        stopQuestionAudio()
-                        if (canSpeak) speechSynthesis.cancel()
-                      } else {
-                        setBrowsePlaying(i)
-                        void presentQuestion(test!.questions[i], test?.audio?.[i])
-                      }
-                    }}
-                  >
-                    {browsePlaying === i && speaking ? '⏹' : '▶'}
-                  </button>
-                  <p className="en">
-                    <strong>Q{i + 1}.</strong> {test?.questions[i]}
-                  </p>
-                </div>
-              ))}
+              {indices.map((i) => {
+                const answer = test?.answers?.[i] ?? []
+                return (
+                  <div key={i} className="sentence browse-q-block">
+                    <div className="browse-q">
+                      <button
+                        className={`btn-icon ${browsePlaying === i && speaking ? 'on' : ''}`}
+                        aria-label="문항 듣기"
+                        onClick={() => {
+                          if (browsePlaying === i && speaking) {
+                            stopQuestionAudio()
+                            if (canSpeak) speechSynthesis.cancel()
+                          } else {
+                            setBrowsePlaying(i)
+                            void presentQuestion(test!.questions[i], test?.audio?.[i])
+                          }
+                        }}
+                      >
+                        {browsePlaying === i && speaking ? '⏹' : '▶'}
+                      </button>
+                      <p className="en">
+                        <strong>Q{i + 1}.</strong> {test?.questions[i]}
+                      </p>
+                    </div>
+                    {answer.length > 0 && (
+                      <div className="study-answer">
+                        {answer.map((line, k) => (
+                          <p key={k}>{line}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </section>
           )
         })}
@@ -336,7 +348,7 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
         )}
 
         <p className="dim exam-guide">
-          세트를 누르면 실전처럼 15문항 전체를 응시합니다. 👁 는 문제를 눈으로 봅니다.
+          세트를 누르면 실전처럼 15문항 전체를 응시합니다. 📖 는 문제와 적힌 답변을 보며 스터디합니다.
         </p>
         {mock.map((sec) => (
           <section className="cat-card exam-pick" key={sec.name}>
@@ -349,14 +361,14 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
                   </button>
                   <button
                     className="chip chip-eye"
-                    aria-label="문제 보기"
+                    aria-label="스터디"
                     onClick={() => {
                       setBrowsing({ secName: sec.name, testNo: t.no })
                       setBrowsePlaying(null)
                       setPhase('browse')
                     }}
                   >
-                    👁
+                    📖
                   </button>
                 </span>
               ))}
