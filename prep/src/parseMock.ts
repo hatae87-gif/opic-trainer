@@ -21,6 +21,8 @@ function hangulRatio(s: string): number {
  * 실제 문항은 깔끔한 영어 문장으로 대부분 물음표를 포함한다.
  */
 function isQuestion(line: string): boolean {
+  // 답변 플랜 표기(서) →) 패) 결) 등)로 시작하는 줄은 항상 답변이다
+  if (/^[가-힣]{1,3}\s*\)|^→|^⇒|^->/.test(line)) return false
   if (hangulRatio(line) > 0.05) return false
   if (/\.\.|…|\+\+|\s\+\s|\s\+$/.test(line)) return false
   // 답안 메모는 "Parking spot, how long it would take/how many…" 처럼
