@@ -5,6 +5,8 @@ import type { MockSection, MockTest } from './types.js'
 const SECTION = /^(기본|심화)\s*모의고사$/
 const STOP = /^추가\s*모의고사/
 const TEST_HEADER = /^Test\s*(\d+)$/i
+/** 세트 요약표 한 행을 여는 표시 */
+const SUMMARY_ROW = /^요약\s*\|/
 
 /** 한글 음절 비율 */
 function hangulRatio(s: string): number {
@@ -98,6 +100,18 @@ export async function parseMockDoc(buffer: Buffer): Promise<MockSection[]> {
     }
 
     if (!test) continue
+    // 세트 요약표: `요약| 1 | 자기소개 | … ` 한 줄이 표 한 행. 문항 앞뒤 어디에 있어도 된다
+    if (SUMMARY_ROW.test(line)) {
+      const cells = line
+        .replace(SUMMARY_ROW, '')
+        .split('|')
+        .map((c) => c.trim())
+      // 구분선(| --- | --- |)은 버린다
+      if (cells.some((c) => c && !/^-+$/.test(c))) {
+        ;(test.summary ??= []).push(cells)
+      }
+      continue
+    }
     if (isQuestion(line)) {
       test.questions.push(line)
       test.answers!.push([])

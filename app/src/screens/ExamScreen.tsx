@@ -55,6 +55,8 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
   const [openAnswers, setOpenAnswers] = useState<Set<string>>(new Set())
   /** 스터디: 지금 수정 중인 답변 키와 입력값 */
   const [editingAnswer, setEditingAnswer] = useState<{ key: string; text: string } | null>(null)
+  /** 스터디: 세트 요약표를 펼쳐 둘지 */
+  const [showSummary, setShowSummary] = useState(true)
   const lastRandomRef = useRef<string | null>(null)
   const recorder = useRecorder()
   const myVoice = useMyVoice()
@@ -330,9 +332,40 @@ export function ExamScreen({ onOpenConnect }: { onOpenConnect?: () => void }) {
           <button className="btn-icon" onClick={quit} aria-label="뒤로">←</button>
           <div className="bar-title">
             <strong>{browsing.secName} Test {browsing.testNo} 스터디</strong>
-            <span className="dim">문항 음성(▶)과 문서에 적힌 답변을 함께 봅니다</span>
+            <span className="dim">요약표 · 문항 음성(▶) · 문서에 적힌 답변을 함께 봅니다</span>
           </div>
         </header>
+
+        {test?.summary && test.summary.length > 1 && (
+          <section className="exam-summary">
+            <button className="chip summary-toggle" onClick={() => setShowSummary((v) => !v)}>
+              {showSummary ? '▾ 한눈에 보기' : '▸ 한눈에 보기'}
+            </button>
+            {showSummary && (
+              <div className="summary-scroll">
+                <table className="summary-table">
+                  <thead>
+                    <tr>
+                      {test.summary[0].map((h, k) => (
+                        <th key={k}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {test.summary.slice(1).map((row, r) => (
+                      <tr key={r}>
+                        {row.map((c, k) => (
+                          <td key={k}>{c}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
         {GROUPS.map((g) => {
           const indices = g.map((n) => n - 1).filter((i) => i < (test?.questions.length ?? 0))
           if (indices.length === 0) return null

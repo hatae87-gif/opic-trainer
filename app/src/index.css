@@ -593,3 +593,44 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
   border-radius: 10px;
   padding: 10px 12px;
 }
+
+/* ── 모의고사 세트 요약표 ───────────────────────────────── */
+.exam-summary { margin: 4px 0 14px; }
+.summary-toggle { margin-bottom: 8px; }
+
+/* 폰에서는 가로 스크롤로 본다. 표 자체를 줄이면 패턴 조합이 읽히지 않는다 */
+.summary-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--surface2);
+  border-radius: 12px;
+}
+
+.summary-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 0.78rem;
+}
+.summary-table th,
+.summary-table td {
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--surface2);
+  white-space: nowrap;
+}
+.summary-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface2);
+  color: var(--text);
+  font-weight: 600;
+}
+.summary-table tbody tr:last-child td { border-bottom: none; }
+/* № 열은 좁게, 메모 열은 줄바꿈 허용 */
+.summary-table td:first-child,
+.summary-table th:first-child { width: 2.4em; color: var(--dim); }
+.summary-table td:last-child,
+.summary-table th:last-child { white-space: normal; min-width: 14em; color: var(--dim); }
+.summary-table td:nth-child(3) { color: var(--amber); }
