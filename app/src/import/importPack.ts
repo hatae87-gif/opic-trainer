@@ -79,6 +79,9 @@ export async function importPack(file: File): Promise<ImportSummary> {
   await tx
     .objectStore('meta')
     .put({ key: 'lastImport', value: `${manifest.createdAt}|${manifest.student}` })
+  if (manifest.tips) {
+    await tx.objectStore('meta').put({ key: 'tips', value: JSON.stringify(manifest.tips) })
+  }
   if (manifest.mockExam) {
     await tx.objectStore('meta').put({ key: 'mockExam', value: JSON.stringify(manifest.mockExam) })
     // 문항 음성도 오디오 저장소에 넣는다 (키 = 번들 내 경로)

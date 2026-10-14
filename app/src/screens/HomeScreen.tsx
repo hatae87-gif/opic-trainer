@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getDB } from '../db/db'
 import { importPack, type ImportSummary } from '../import/importPack'
 import { dueSentenceIds } from '../srs/srs'
-import type { StoredScript } from '../types'
+import type { StoredScript, TipSection } from '../types'
 
 interface Props {
   onOpenScript: (id: string) => void
@@ -16,10 +16,14 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
   const [message, setMessage] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const [tips, setTips] = useState<TipSection[]>([])
+
   const reload = async () => {
     const db = await getDB()
     setScripts(await db.getAll('scripts'))
     setDueCount((await dueSentenceIds()).length)
+    const rawTips = await db.get('meta', 'tips')
+    setTips(rawTips ? (JSON.parse(rawTips.value) as TipSection[]) : [])
   }
 
   useEffect(() => {
@@ -86,6 +90,21 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
       )}
 
       {/* 학원 정리표처럼: 카테고리 카드 안에 변형을 칩으로 배열해 한눈에 고른다 */}
+      {tips.length > 0 && (
+        <section className="tips-area">
+          {tips.map((t) => (
+            <details key={t.title} className="tips-card">
+              <summary>💡 {t.title}</summary>
+              <div className="tips-body">
+                {t.lines.map((line, i) => (
+                  <p key={i} className={/^[✻✽<]/.test(line) ? 'tips-head' : ''}>{line}</p>
+                ))}
+              </div>
+            </details>
+          ))}
+        </section>
+      )}
+
       <div className="cat-grid">
         {categories.map(([key, title]) => (
           <section className="cat-card" key={key}>

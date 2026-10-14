@@ -389,6 +389,29 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .plan-preview { margin-top: 8px; border-top: 1px solid var(--surface2); padding-top: 8px; }
 .plan-preview .en { margin: 0 0 6px; font-size: 0.85rem; line-height: 1.5; }
 
+/* 주제별 TIP 카드 */
+.tips-area { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.tips-card {
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 12px;
+  padding: 0;
+}
+.tips-card summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--amber);
+  list-style: none;
+}
+.tips-card summary::-webkit-details-marker { display: none; }
+.tips-card[open] summary { border-bottom: 1px solid var(--surface2); }
+.tips-body { padding: 10px 14px 12px; }
+.tips-body p { margin: 0 0 7px; font-size: 0.87rem; line-height: 1.55; }
+.tips-body p:last-child { margin-bottom: 0; }
+.tips-body .tips-head { color: var(--accent); font-weight: 700; margin-top: 10px; }
+
 /* 홈: 정리표 스타일 카테고리 카드 + 변형 칩 */
 .cat-grid {
   display: grid;

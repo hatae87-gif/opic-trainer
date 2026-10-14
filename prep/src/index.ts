@@ -6,6 +6,7 @@ import { carrySlashes, loadPreviousAnnotations, normalizeForCompare } from './an
 import { writeBundle } from './bundle.js'
 import { categoryKey, parseScriptDoc } from './parseDocx.js'
 import { parseMockDoc } from './parseMock.js'
+import { parseYeowooXlsx } from './parseYeowoo.js'
 import { scanMaterials } from './scan.js'
 import { hasUnitMarks, splitScript } from './split.js'
 import { transcribe } from './transcribe.js'
@@ -232,8 +233,45 @@ async function main() {
   // ---- 모의고사 ----
   let mockExam = undefined
   let mockAudioByKey: Map<string, SourceFile> | undefined
-  if (scan.mockDoc) {
-    mockExam = await parseMockDoc(scan.mockDoc.data)
+  if (scan.mockDocs.length > 0) {
+    mockExam = await parseMockDoc(scan.mockDocs[0].data)
+
+    // 답변 플랜·요약표는 사용자가 다른 판본(스크립트 포함 등)에 적어두기도 한다.
+    // 최신 문서에 빠진 것을 문항 텍스트 매칭으로 옛 판본에서 가져온다
+    let carried = 0
+    for (const otherDoc of scan.mockDocs.slice(1)) {
+      const other = await parseMockDoc(otherDoc.data)
+      for (const secB of mockExam) {
+        const secO = other.find((s) => s.name === secB.name)
+        if (!secO) continue
+        for (const tB of secB.tests) {
+          const tO = secO.tests.find((x) => x.no === tB.no)
+          if (!tO) continue
+          if (!tB.summary && tO.summary) tB.summary = tO.summary
+          tB.questions.forEach((q, i) => {
+            if ((tB.answers?.[i]?.length ?? 0) > 0) return
+            const j = tO.questions.indexOf(q)
+            if (j >= 0 && (tO.answers?.[j]?.length ?? 0) > 0) {
+              tB.answers![i] = tO.answers![j]
+              carried++
+            }
+          })
+        }
+      }
+    }
+    if (carried > 0) console.log(`  ↻ 다른 모의고사 판본에서 답변 ${carried}문항 이어받음`)
+
+    // 여우오픽 통합 세트 (음성 없음 → 앱에서 TTS 출제)
+    if (scan.yeowooXlsx) {
+      const yw = parseYeowooXlsx(scan.yeowooXlsx.data)
+      if (yw) {
+        mockExam.push(yw)
+        const qn = yw.tests.reduce((n, t) => n + t.questions.length, 0)
+        console.log(`  + 여우오픽 통합: ${yw.tests.length}세트 · ${qn}문항`)
+      } else {
+        console.warn('  ! 여우오픽 엑셀을 읽지 못했습니다')
+      }
+    }
     const total = mockExam.reduce(
       (n, s) => n + s.tests.reduce((m, t) => m + t.questions.length, 0),
       0,
@@ -248,7 +286,8 @@ async function main() {
     )
     void audioBytes
     for (const s of mockExam) {
-      const odd = s.tests.filter((t) => t.questions.length !== 15)
+      // 여우오픽 통합은 세트당 문항 수가 유동적이라 15개 검사를 하지 않는다
+      const odd = s.name === '여우' ? [] : s.tests.filter((t) => t.questions.length !== 15)
       for (const t of odd) {
         console.warn(`  ! ${s.name} Test ${t.no}: 문항이 ${t.questions.length}개입니다 (기대값 15)`)
       }
@@ -264,7 +303,11 @@ async function main() {
     }
   }
 
-  const out = writeBundle(doc.student, scripts, audioByScript, mockExam, mockAudioByKey)
+  if (doc.tips.length > 0) {
+    console.log(`팁 구역: ${doc.tips.map((t) => `${t.title}(${t.lines.length}줄)`).join(' · ')}`)
+  }
+
+  const out = writeBundle(doc.student, scripts, audioByScript, mockExam, mockAudioByKey, doc.tips)
   console.log(`\n✅ 번들 생성: ${out}`)
   console.log('이 파일을 카톡 "나에게 보내기" 등으로 폰에 전송한 뒤, 앱에서 가져오기 하세요.')
 }

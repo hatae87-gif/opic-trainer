@@ -56,6 +56,8 @@ export interface ParsedDoc {
   /** 대단원. 예: 육하원칙 */
   part: string
   categories: ParsedCategory[]
+  /** 주제별 TIP 등 팁 구역들 (원문 그대로) */
+  tips: TipSection[]
 }
 
 /** 문장 단위로 쪼갠 결과 */
@@ -105,9 +107,15 @@ export interface MockTest {
 }
 
 export interface MockSection {
-  /** 기본 / 심화 */
+  /** 기본 / 심화 / 여우 */
   name: string
   tests: MockTest[]
+}
+
+/** 마스터 문서의 팁 구역 (주제별 TIP 등). 원문 그대로 보관한다 */
+export interface TipSection {
+  title: string
+  lines: string[]
 }
 
 export interface Manifest {
@@ -116,4 +124,5 @@ export interface Manifest {
   student: string
   scripts: BuiltScript[]
   mockExam?: MockSection[]
+  tips?: TipSection[]
 }

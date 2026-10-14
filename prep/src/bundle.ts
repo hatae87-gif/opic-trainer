@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { zipSync } from 'fflate'
-import type { BuiltScript, Manifest, MockSection, SourceFile } from './types.js'
+import type { BuiltScript, Manifest, MockSection, SourceFile, TipSection } from './types.js'
 
 const OUTPUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'output')
 
@@ -17,6 +17,7 @@ export function writeBundle(
   mockExam?: MockSection[],
   /** "섹션|테스트|문항번호" → 문항 음성 파일 */
   mockAudioByKey?: Map<string, SourceFile>,
+  tips?: TipSection[],
 ): string {
   const entries: Record<string, Uint8Array> = {}
   for (const s of scripts) {
@@ -52,6 +53,7 @@ export function writeBundle(
     student,
     scripts,
     ...(mockExam && mockExam.length > 0 ? { mockExam } : {}),
+    ...(tips && tips.length > 0 ? { tips } : {}),
   }
   entries['manifest.json'] = new TextEncoder().encode(JSON.stringify(manifest, null, 1))
 

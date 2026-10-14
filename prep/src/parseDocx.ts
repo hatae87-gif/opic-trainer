@@ -1,6 +1,9 @@
 import mammoth from 'mammoth'
 import { UNIT_SEP } from './split.js'
-import type { ParsedCategory, ParsedDoc, ParsedScript } from './types.js'
+import type { ParsedCategory, ParsedDoc, ParsedScript, TipSection } from './types.js'
+
+/** 팁 구역 제목: "✽ 주제별TIP", "주제별 tip", "✽ 주제별 TIP 정리" 등 */
+const TIP_HEADER = /주제별\s*tip/i
 
 /** 변형 헤더: `1) By myself – 혼자서` / `2) Far from my place - 멀어` */
 const NUMBERED = /^(\d+)\s*\)\s*(.+)$/
@@ -142,6 +145,9 @@ export async function parseScriptDoc(buffer: Buffer): Promise<ParsedDoc> {
   const part = caption.replace(/\s*정리표\s*$/, '').trim()
 
   const categories: ParsedCategory[] = []
+  const tips: TipSection[] = []
+  /** 팁 구역 수집 중이면 그 섹션. 다음 카테고리 제목에서 닫힌다 */
+  let tip: TipSection | null = null
   let current: ParsedCategory | null = null
   let script: ParsedScript | null = null
   let vocabMode = false
@@ -188,6 +194,22 @@ export async function parseScriptDoc(buffer: Buffer): Promise<ParsedDoc> {
 
     // 문자가 전혀 없는 줄(이모티콘 ☺, 구분선 등)은 내용이 아니다
     if (!/\p{L}/u.test(line)) continue
+
+    // 팁 구역: 제목을 만나면 수집을 시작하고, 다음 카테고리 제목까지 원문 그대로 담는다
+    if (TIP_HEADER.test(line)) {
+      flushScript()
+      tip = { title: asLabel(line), lines: [] }
+      tips.push(tip)
+      continue
+    }
+    if (tip) {
+      if (isKnownCategory(asLabel(line))) {
+        tip = null // 팁 구역 종료 → 아래의 카테고리 처리로 이어진다
+      } else {
+        tip.lines.push(asLabel(line))
+        continue
+      }
+    }
 
     const isBody = line.length >= BODY_MIN_LEN
     /** 제목이 될 수 있을 만큼 짧은 줄. 그 사이 길이(tip의 짧은 한국어 문장 등)는 본문 */
@@ -290,5 +312,6 @@ export async function parseScriptDoc(buffer: Buffer): Promise<ParsedDoc> {
     // 아직 수업에서 다루지 않아 비어있는 카테고리는 내보내지 않는다.
     // 다음 수업에 내용이 채워지면 자동으로 나타난다.
     categories: categories.filter((c) => c.scripts.length > 0),
+    tips: tips.filter((t) => t.lines.length > 0),
   }
 }

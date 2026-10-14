@@ -39,9 +39,15 @@ export interface MockTest {
 }
 
 export interface MockSection {
-  /** 기본 / 심화 */
+  /** 기본 / 심화 / 여우 */
   name: string
   tests: MockTest[]
+}
+
+/** 마스터 문서의 팁 구역 (주제별 TIP 등). 원문 그대로 */
+export interface TipSection {
+  title: string
+  lines: string[]
 }
 
 export interface Manifest {
@@ -50,6 +56,7 @@ export interface Manifest {
   student: string
   scripts: ManifestScript[]
   mockExam?: MockSection[]
+  tips?: TipSection[]
 }
 
 /** DB에 저장되는 문장. sentenceId가 학습 기록의 영속 키다 */

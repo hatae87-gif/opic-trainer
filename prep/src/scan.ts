@@ -102,8 +102,10 @@ export interface MockAudioRef {
 export interface ScanResult {
   /** 가장 최근 수업의 마스터 스크립트 워드 파일 */
   scriptDoc: SourceFile
-  /** 모의고사 문제집 (있으면) */
-  mockDoc: SourceFile | null
+  /** 모의고사 문제집 (있으면, 최신순). 답변 플랜은 여러 판본에 흩어져 있어 병합한다 */
+  mockDocs: SourceFile[]
+  /** 여우오픽 통합 모의고사 엑셀 (있으면) */
+  yeowooXlsx: SourceFile | null
   /** 오디오 후보. 카테고리 매칭은 파싱 결과를 알아야 하므로 여기서 하지 않는다 */
   audioFiles: { file: SourceFile; base: string; no: number }[]
   /** 모의고사 문항 음성 */
@@ -198,9 +200,14 @@ export function scanMaterials(root: string): ScanResult {
     .filter((f) => MOCK_DOC.test(f.name) && !TEXTBOOK_DOC.test(f.name))
     .sort((a, b) => b.mtime - a.mtime)
 
+  const yeowoo = unique
+    .filter((f) => /여우.*\.xlsx$/i.test(f.name))
+    .sort((a, b) => b.mtime - a.mtime)
+
   return {
     scriptDoc: docs[0],
-    mockDoc: mockDocs[0] ?? null,
+    mockDocs,
+    yeowooXlsx: yeowoo[0] ?? null,
     audioFiles,
     mockAudio,
     stats: { scanned: all.length, unique: unique.length, days: [...new Set(days)].sort((a, b) => a - b) },
