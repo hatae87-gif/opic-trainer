@@ -2,8 +2,8 @@ import mammoth from 'mammoth'
 import { UNIT_SEP } from './split.js'
 import type { ParsedCategory, ParsedDoc, ParsedScript, TipSection } from './types.js'
 
-/** 팁 구역 제목: "✽ 주제별TIP", "주제별 tip", "✽ 주제별 TIP 정리" 등 */
-const TIP_HEADER = /주제별\s*tip/i
+/** 팁 구역 제목: "✽ 주제별TIP", "주제별 tip", "✽ 주제별 TIP 정리", "비상문구" 등 */
+const TIP_HEADER = /주제별\s*tip|비상\s*문구/i
 
 /** 변형 헤더: `1) By myself – 혼자서` / `2) Far from my place - 멀어` */
 const NUMBERED = /^(\d+)\s*\)\s*(.+)$/

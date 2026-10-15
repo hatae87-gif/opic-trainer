@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getDB } from '../db/db'
 import { importPack, type ImportSummary } from '../import/importPack'
 import { dueSentenceIds } from '../srs/srs'
-import type { StoredScript, TipSection } from '../types'
+import type { StarterGuide, StoredScript, TipSection } from '../types'
 
 interface Props {
   onOpenScript: (id: string) => void
@@ -17,6 +17,7 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [tips, setTips] = useState<TipSection[]>([])
+  const [guide, setGuide] = useState<StarterGuide[]>([])
 
   const reload = async () => {
     const db = await getDB()
@@ -24,6 +25,8 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
     setDueCount((await dueSentenceIds()).length)
     const rawTips = await db.get('meta', 'tips')
     setTips(rawTips ? (JSON.parse(rawTips.value) as TipSection[]) : [])
+    const rawGuide = await db.get('meta', 'starterGuide')
+    setGuide(rawGuide ? (JSON.parse(rawGuide.value) as StarterGuide[]) : [])
   }
 
   useEffect(() => {
@@ -90,6 +93,27 @@ export function HomeScreen({ onOpenScript, onStartReview }: Props) {
       )}
 
       {/* 학원 정리표처럼: 카테고리 카드 안에 변형을 칩으로 배열해 한눈에 고른다 */}
+      {guide.length > 0 && (
+        <section className="tips-area">
+          <details className="tips-card">
+            <summary>🗣 서론 가이드 — 질문별 시작 멘트 ({guide.length}문항)</summary>
+            <div className="tips-body">
+              {guide.map((g) => (
+                <div key={g.question} className="guide-entry">
+                  <p className="guide-q">Q. {g.question}</p>
+                  {g.starters.map((s, i) => (
+                    <div key={i} className="guide-starter">
+                      <p className="guide-ko">{s.ko}</p>
+                      {s.en && <p className="guide-en">{s.en}</p>}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </details>
+        </section>
+      )}
+
       {tips.length > 0 && (
         <section className="tips-area">
           {tips.map((t) => (

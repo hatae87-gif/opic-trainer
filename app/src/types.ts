@@ -50,6 +50,12 @@ export interface TipSection {
   lines: string[]
 }
 
+/** 교재에서 뽑은 서론 가이드: 질문 + 한국어 시작 멘트(+영작) */
+export interface StarterGuide {
+  question: string
+  starters: { ko: string; en: string | null }[]
+}
+
 export interface Manifest {
   version: 1
   createdAt: string
@@ -57,6 +63,7 @@ export interface Manifest {
   scripts: ManifestScript[]
   mockExam?: MockSection[]
   tips?: TipSection[]
+  starterGuide?: StarterGuide[]
 }
 
 /** DB에 저장되는 문장. sentenceId가 학습 기록의 영속 키다 */

@@ -106,6 +106,8 @@ export interface ScanResult {
   mockDocs: SourceFile[]
   /** 여우오픽 통합 모의고사 엑셀 (있으면) */
   yeowooXlsx: SourceFile | null
+  /** AL 교재 (수업 기록, 서론 가이드 추출용) */
+  textbookDoc: SourceFile | null
   /** 오디오 후보. 카테고리 매칭은 파싱 결과를 알아야 하므로 여기서 하지 않는다 */
   audioFiles: { file: SourceFile; base: string; no: number }[]
   /** 모의고사 문항 음성 */
@@ -204,10 +206,15 @@ export function scanMaterials(root: string): ScanResult {
     .filter((f) => /여우.*\.xlsx$/i.test(f.name))
     .sort((a, b) => b.mtime - a.mtime)
 
+  const textbooks = unique
+    .filter((f) => TEXTBOOK_DOC.test(f.name) && /\.docx$/i.test(f.name))
+    .sort((a, b) => b.mtime - a.mtime)
+
   return {
     scriptDoc: docs[0],
     mockDocs,
     yeowooXlsx: yeowoo[0] ?? null,
+    textbookDoc: textbooks[0] ?? null,
     audioFiles,
     mockAudio,
     stats: { scanned: all.length, unique: unique.length, days: [...new Set(days)].sort((a, b) => a - b) },

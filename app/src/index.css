@@ -412,6 +412,18 @@ code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
 .tips-body p:last-child { margin-bottom: 0; }
 .tips-body .tips-head { color: var(--accent); font-weight: 700; margin-top: 10px; }
 
+/* 서론 가이드 */
+.guide-entry { margin-bottom: 14px; }
+.guide-entry:last-child { margin-bottom: 0; }
+.guide-q { color: var(--accent); font-weight: 600; font-size: 0.85rem; margin: 0 0 6px; line-height: 1.5; }
+.guide-starter {
+  border-left: 3px solid var(--surface2);
+  padding: 4px 10px;
+  margin-bottom: 8px;
+}
+.guide-ko { color: var(--dim); font-size: 0.84rem; margin: 0 0 3px; line-height: 1.5; }
+.guide-en { color: var(--text); font-size: 0.88rem; margin: 0; line-height: 1.5; }
+
 /* 홈: 정리표 스타일 카테고리 카드 + 변형 칩 */
 .cat-grid {
   display: grid;

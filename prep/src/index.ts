@@ -5,8 +5,10 @@ import { alignSentences } from './align.js'
 import { carrySlashes, loadPreviousAnnotations, normalizeForCompare } from './annotate.js'
 import { writeBundle } from './bundle.js'
 import { categoryKey, parseScriptDoc } from './parseDocx.js'
+import { parseStarterGuide } from './parseGuide.js'
 import { parseMockDoc } from './parseMock.js'
 import { parseYeowooXlsx } from './parseYeowoo.js'
+import type { StarterGuide } from './types.js'
 import { scanMaterials } from './scan.js'
 import { hasUnitMarks, splitScript } from './split.js'
 import { transcribe } from './transcribe.js'
@@ -303,11 +305,64 @@ async function main() {
     }
   }
 
+  // 워드에 없는 보조 팁(사용자가 따로 준 표현집 등)은 prep/extra-tips.txt 에 둔다.
+  // `✽ 제목` 줄이 구역을 열고, 다음 ✽ 까지의 줄을 원문 그대로 담는다 (빈 줄은 간격 유지용으로 보존)
+  const extraPath = join(PREP_DIR, 'extra-tips.txt')
+  if (existsSync(extraPath)) {
+    let section: { title: string; lines: string[] } | null = null
+    for (const raw of readFileSync(extraPath, 'utf8').split(/\r?\n/)) {
+      const line = raw.trim()
+      if (line.startsWith('✽')) {
+        section = { title: line, lines: [] }
+        doc.tips.push(section)
+      } else if (section) {
+        section.lines.push(line)
+      }
+    }
+    // 구역 꼬리의 빈 줄은 정리한다
+    for (const t of doc.tips) {
+      while (t.lines.length > 0 && t.lines[t.lines.length - 1] === '') t.lines.pop()
+    }
+  }
+
   if (doc.tips.length > 0) {
     console.log(`팁 구역: ${doc.tips.map((t) => `${t.title}(${t.lines.length}줄)`).join(' · ')}`)
   }
 
-  const out = writeBundle(doc.student, scripts, audioByScript, mockExam, mockAudioByKey, doc.tips)
+  // ---- 교재 서론 가이드 (한글 → 영작은 prep/guide-translations.json 에서) ----
+  let starterGuide: StarterGuide[] | undefined
+  if (scan.textbookDoc) {
+    const entries = await parseStarterGuide(scan.textbookDoc.data)
+    const trPath = join(PREP_DIR, 'guide-translations.json')
+    const translations: Record<string, string> = existsSync(trPath)
+      ? JSON.parse(readFileSync(trPath, 'utf8'))
+      : {}
+    const missing: string[] = []
+    starterGuide = entries.map((e) => ({
+      question: e.question,
+      starters: e.starters.map((ko) => {
+        const en = translations[ko] ?? null
+        if (!en) missing.push(ko)
+        return { ko, en }
+      }),
+    }))
+    const lines = starterGuide.reduce((n, e) => n + e.starters.length, 0)
+    console.log(
+      `서론 가이드: 질문 ${starterGuide.length}개 · ${lines}줄` +
+        (missing.length ? ` · 미번역 ${missing.length}줄 — guide-translations.json 에 추가 필요` : ' · 전부 영작됨'),
+    )
+    for (const m of missing.slice(0, 5)) console.warn(`  ! 미번역: ${m.slice(0, 55)}…`)
+  }
+
+  const out = writeBundle(
+    doc.student,
+    scripts,
+    audioByScript,
+    mockExam,
+    mockAudioByKey,
+    doc.tips,
+    starterGuide,
+  )
   console.log(`\n✅ 번들 생성: ${out}`)
   console.log('이 파일을 카톡 "나에게 보내기" 등으로 폰에 전송한 뒤, 앱에서 가져오기 하세요.')
 }
